@@ -105,3 +105,11 @@ ENV/
 
 # Generated files
 fairseq/temporal_convolution_tbc
+
+# .pycharm meta folder
+.idea/
+
+# data folder
+data-bin/
+examples/
+tmp/
