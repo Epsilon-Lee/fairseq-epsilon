@@ -80,26 +80,35 @@ class ComdaTranslationTask(FairseqTask):
         assert src_dict.eos() == tgt_dict.eos()
         assert src_dict.unk() == tgt_dict.unk()
 
-        # load proto-vocabularies
+        # load proto dictionaries
         proto_src_dict = Dictionary.load(proto_src_dict_path)
         proto_tgt_dict = Dictionary.load(proto_tgt_dict_path)
         assert src_dict.eos() == tgt_dict.eos()
 
+        # create mixed source, target dictionaries
+        mixed_src_dict = MixedDictionary(src_dict, proto_src_dict)
+        mixed_tgt_dict = MixedDictionary(tgt_dict, proto_tgt_dict)
+
         task = ComdaTranslationTask(
             args, src_dict, tgt_dict,
-            proto_src_dict, proto_tgt_dict)
+            proto_src_dict, proto_tgt_dict,
+            mixed_src_dict, mixed_tgt_dict
+        )
         model = task.build_model(args)
         model.upgrade_state_dict(state_dict)
         model.load_state_dict(state_dict, strict=True)
         return model
 
     def __init__(self, args, src_dict, tgt_dict,
-                 proto_src_dict, proto_tgt_dict):
+                 proto_src_dict, proto_tgt_dict,
+                 mixed_src_dict, mixed_tgt_dict):
         super().__init__(args)
         self.src_dict = src_dict
         self.tgt_dict = tgt_dict
         self.proto_src_dict = proto_src_dict
         self.proto_tgt_dict = proto_tgt_dict
+        self.mixed_src_dict = mixed_src_dict
+        self.mixed_tgt_dict = mixed_tgt_dict
 
     @classmethod
     def setup_task(cls, args, **kwargs):
@@ -133,7 +142,13 @@ class ComdaTranslationTask(FairseqTask):
         print('| [{}] proto-dictionary: {} types'.format(args.source_lang, len(proto_src_dict)))
         print('| [{}] proto-dictionary: {} types'.format(args.target_lang, len(proto_tgt_dict)))
 
-        return cls(args, src_dict, tgt_dict, proto_src_dict, proto_tgt_dict)
+        # create mixed source, mixed target dictionaries
+        mixed_src_dict = MixedDictionary(src_dict, proto_src_dict)
+        mixed_tgt_dict = MixedDictionary(tgt_dict, proto_tgt_dict)
+
+        return cls(args, src_dict, tgt_dict,
+                   proto_src_dict, proto_tgt_dict,
+                   mixed_src_dict, mixed_tgt_dict)
 
     def load_dataset(self, split, combine=False, **kwargs):
         """Load a given dataset split.
@@ -214,10 +229,6 @@ class ComdaTranslationTask(FairseqTask):
             proto_src_dataset = proto_tgt_dataset = alignment_dataset = None
             ValueError("Haven't written the code for dealing with "
                        "multiple datasets with prototypes.")
-
-        # create mixed source, mixed target dictionaries
-        mixed_src_dict = MixedDictionary(self.src_dict, self.proto_src_dict)
-        mixed_tgt_dict = MixedDictionary(self.tgt_dict, self.proto_tgt_dict)
 
         self.datasets[split] = ComdaTranslationDataset(
             src_dataset, src_dataset.sizes, self.src_dict,
