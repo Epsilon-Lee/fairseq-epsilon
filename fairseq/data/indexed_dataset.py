@@ -180,6 +180,46 @@ class IndexedInMemoryDataset(IndexedDataset):
         return torch.from_numpy(a).long()
 
 
+class IndexedAlignmentDataset(IndexedDataset):
+    """Takes an alignment file as input and binarizes it in memory at instantiation.
+    Original lines are also kept in memory.
+
+        alignment_maps List[Dict[tgt_position]=src_position]
+    """
+
+    def __init__(self, path, append_eos=True, reverse_order=False):
+        self.alignment_maps = []
+        self.append_eos = append_eos
+        self.reverse_order = reverse_order
+        self.read_data(path)
+        self.size = len(self.alignment_maps)
+
+    def read_data(self, path):
+        with open(path, 'r') as f:
+            for line in f:
+                word_align = line.strip().split()  # a list of str 'src_position-tgt_position'
+                a_map = {}
+                for a in word_align:
+                    src_position, tgt_position = a.split('-')
+                    src_position, tgt_position = int(src_position), int(tgt_position)
+                    a_map[tgt_position] = src_position
+                self.alignment_maps.append(a_map)
+
+    def __getitem__(self, i):
+        self.check_index(i)
+        return self.alignment_maps[i]
+
+    def __del__(self):
+        pass
+
+    def __len__(self):
+        return self.size
+
+    @staticmethod
+    def exists(path):
+        return os.path.exists(path)
+
+
 class IndexedRawTextDataset(IndexedDataset):
     """Takes a text file as input and binarizes it in memory at instantiation.
     Original lines are also kept in memory"""
