@@ -10,8 +10,10 @@ Translate pre-processed data with a trained model.
 """
 
 import torch
+import ipdb
 
-from fairseq import bleu, data, options, progress_bar, tasks, tokenizer, utils
+# from fairseq import bleu, data, options, progress_bar, tasks, tokenizer, utils
+from fairseq import data, options, progress_bar, tasks, tokenizer, utils
 from fairseq.meters import StopwatchMeter, TimeMeter
 from fairseq.sequence_generator import SequenceGenerator
 from fairseq.sequence_scorer import SequenceScorer
@@ -89,9 +91,11 @@ def main(args):
         translator.cuda()
 
     # Generate and compute BLEU score
-    scorer = bleu.Scorer(tgt_dict.pad(), tgt_dict.eos(), tgt_dict.unk())
+    # scorer = bleu.Scorer(tgt_dict.pad(), tgt_dict.eos(), tgt_dict.unk())
     num_sentences = 0
     has_target = True
+    f_infer_saveto = open(args.infer_save_to, 'w')
+    f_goldn_saveto = open(args.goldn_save_to, 'w')
     with progress_bar.build_progress_bar(args, itr) as t:
         if args.score_reference:
             translations = translator.score_batched_itr(t, cuda=use_cuda, timer=gen_timer)
@@ -148,25 +152,32 @@ def main(args):
                             ' '.join(map(lambda x: str(utils.item(x)), alignment))
                         ))
 
+                f_infer_saveto.write(hypo_str + '\n')
+                f_goldn_saveto.write(target_str + '\n')
+
                 # Score only the top hypothesis
                 if has_target and i == 0:
                     if align_dict is not None or args.remove_bpe is not None:
                         # Convert back to tokens for evaluation with unk replacement and/or without BPE
                         target_tokens = tokenizer.Tokenizer.tokenize(
                             target_str, tgt_dict, add_if_not_exist=True)
-                    scorer.add(target_tokens, hypo_tokens)
+                    # scorer.add(target_tokens, hypo_tokens)
 
             wps_meter.update(src_tokens.size(0))
             t.log({'wps': round(wps_meter.avg)})
             num_sentences += 1
+    f_infer_saveto.close()
+    f_goldn_saveto.close()
 
     print('| Translated {} sentences ({} tokens) in {:.1f}s ({:.2f} sentences/s, {:.2f} tokens/s)'.format(
         num_sentences, gen_timer.n, gen_timer.sum, num_sentences / gen_timer.sum, 1. / gen_timer.avg))
     if has_target:
-        print('| Generate {} with beam={}: {}'.format(args.gen_subset, args.beam, scorer.result_string()))
+        # print('| Generate {} with beam={}: {}'.format(args.gen_subset, args.beam, scorer.result_string()))
+        print('| Generate {} with beam={}'.format(args.gen_subset, args.beam))
 
 
 if __name__ == '__main__':
     parser = options.get_generation_parser()
     args = options.parse_args_and_arch(parser)
+    ipdb.set_trace()
     main(args)
