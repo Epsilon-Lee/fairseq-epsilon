@@ -5,12 +5,16 @@
 # the root directory of this source tree. An additional grant of patent rights
 # can be found in the PATENTS file in the same directory.
 
-from .dictionary import Dictionary, TruncatedDictionary
+from .dictionary import Dictionary, TruncatedDictionary, MixedDictionary
 from .fairseq_dataset import FairseqDataset
 from .backtranslation_dataset import BacktranslationDataset
 from .concat_dataset import ConcatDataset
-from .indexed_dataset import IndexedDataset, IndexedCachedDataset, IndexedInMemoryDataset, IndexedRawTextDataset
+from .indexed_dataset import (
+    IndexedDataset, IndexedCachedDataset, IndexedInMemoryDataset, IndexedRawTextDataset,
+    IndexedAlignmentDataset
+)
 from .language_pair_dataset import LanguagePairDataset
+from .comda_translation_dataset import ComdaTranslationDataset
 from .monolingual_dataset import MonolingualDataset
 from .round_robin_zip_datasets import RoundRobinZipDatasets
 from .token_block_dataset import TokenBlockDataset
@@ -41,4 +45,7 @@ __all__ = [
     'ShardedIterator',
     'TokenBlockDataset',
     'TransformEosDataset',
+    'IndexedAlignmentDataset',
+    'ComdaTranslationDataset',
+    'MixedDictionary'
 ]
