@@ -129,7 +129,7 @@ class LanguagePairDataset(FairseqDataset):
         src_item = self.src[index]
         # Append EOS to end of tgt sentence if it does not have an EOS and remove
         # EOS from end of src sentence if it exists. This is useful when we use
-        # use existing datasets for opposite directions i.e., when we want to
+        # existing datasets for opposite directions i.e., when we want to
         # use tgt_dataset as src_dataset and vice versa
         if self.append_eos_to_target:
             eos = self.tgt_dict.eos() if self.tgt_dict else self.src_dict.eos()
