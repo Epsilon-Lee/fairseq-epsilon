@@ -349,6 +349,10 @@ def add_generation_args(parser):
                        help='strength of diversity penalty for Diverse Beam Search')
     group.add_argument('--print-alignment', action='store_true',
                        help='if set, uses attention feedback to compute and print alignment to source tokens')
+    group.add_argument('--infer-save-to', required=True,
+                       help='path to save the inference hypotheses')
+    group.add_argument('--goldn-save-to', required=True,
+                       help='path to save the sorted golden references')
     # fmt: on
     return group
 
