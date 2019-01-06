@@ -200,6 +200,7 @@ class Dictionary(object):
         t[-1] = self.eos()
         return t
 
+
 class TruncatedDictionary(object):
 
     def __init__(self, wrapped_dict, length):
@@ -216,3 +217,54 @@ class TruncatedDictionary(object):
         if i < self.length:
             return self.wrapped_dict[i]
         return self.wrapped_dict.unk()
+
+
+class MixedDictionary(object):
+
+    def __init__(self, origin_dict, proto_dict,
+                 pad='<pad>', eos='</s>', unk='<unk>'):
+        self.unk_word, self.pad_word, self.eos_word = unk, pad, eos
+        self.symbols = []
+        self.count = []
+        self.indices = origin_dict.indices
+        self.origin_dict_size = len(origin_dict)
+        self.proto_dict_size = len(proto_dict) - 2  # exclude <pad>, <unk>
+        self.mixed_dict_size = self.origin_dict_size + self.proto_dict_size - 1  # exclude repeated </s>
+        for symbol, cnt in zip(origin_dict.symbols, origin_dict.count):
+            self.symbols.append(symbol)
+            self.count.append(cnt)
+        for symbol in zip(proto_dict.symbols[3:], proto_dict.count[3:]):  # exclude <unk>, </s>, <pad>
+            self.indices[symbol] = len(self.symbols)
+            self.symbols.append(symbol)
+        self.nspecial = origin_dict.nspecials  # 3
+        self.pad_index = origin_dict.pad_index
+        self.eos_index = origin_dict.eos_index
+        self.unk_index = origin_dict.unk_index
+
+    def __eq__(self, other):
+        return self.indices == other.indices
+
+    def __len__(self):
+        return self.mixed_dict_size
+
+    def __getitem__(self, idx):
+        if idx < self.mixed_dict_size:
+            return self.symbols[idx]
+        return self.unk_word
+
+    def pad(self):
+        """Helper to get index of pad symbol"""
+        return self.pad_index
+
+    def eos(self):
+        """Helper to get index of end-of-sentence symbol"""
+        return self.eos_index
+
+    def unk(self):
+        """Helper to get index of unk symbol"""
+        return self.unk_index
+
+    def dummy_sentence(self, length):
+        t = torch.Tensor(length).uniform_(self.nspecial + 1, len(self)).long()
+        t[-1] = self.eos()
+        return t
