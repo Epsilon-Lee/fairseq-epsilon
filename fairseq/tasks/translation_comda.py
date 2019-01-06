@@ -235,7 +235,7 @@ class ComdaTranslationTask(FairseqTask):
             tgt_dataset, tgt_dataset.sizes, self.tgt_dict,
             proto_src_dataset, proto_tgt_dataset, alignment_dataset,
             self.proto_src_dict, self.proto_tgt_dict,
-            mixed_src_dict, mixed_tgt_dict,
+            self.mixed_src_dict, self.mixed_tgt_dict,
             left_pad_source=self.args.left_pad_source,
             left_pad_target=self.args.left_pad_target,
             max_source_positions=self.args.max_source_positions,
