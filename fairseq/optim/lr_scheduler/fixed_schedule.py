@@ -40,7 +40,7 @@ class FixedSchedule(FairseqLRScheduler):
             # use fixed LR schedule
             next_lr = lrs[min(epoch, len(lrs) - 1)]
         else:
-            # annneal based on lr_shrink
+            # anneal based on lr_shrink
             next_lr = lrs[-1] * self.args.lr_shrink ** (epoch + 1 - self.args.force_anneal)
         return next_lr
 
