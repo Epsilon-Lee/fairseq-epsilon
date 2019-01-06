@@ -265,3 +265,11 @@ class ComdaTranslationTask(FairseqTask):
     def proto_target_dictionary(self):
         """Return the target :class:`~fairseq.data.Dictionary`."""
         return self.proto_tgt_dict
+
+    @property
+    def mixed_source_dictionary(self):
+        return self.mixed_src_dict
+
+    @property
+    def mixed_target_dictionary(self):
+        return self.mixed_tgt_dict
