@@ -68,7 +68,8 @@ class ComdaTranslationTask(FairseqTask):
 
     @staticmethod
     def load_pretrained_model(path, src_dict_path, tgt_dict_path,
-                              proto_src_dict_path, proto_tgt_dict_path, arg_overrides=None):
+                              proto_src_dict_path, proto_tgt_dict_path,
+                              arg_overrides=None):
         model = utils.load_checkpoint_to_cpu(path)
         args = model['args']
         state_dict = model['model']
@@ -82,17 +83,18 @@ class ComdaTranslationTask(FairseqTask):
         # load proto-vocabularies
         proto_src_dict = Dictionary.load(proto_src_dict_path)
         proto_tgt_dict = Dictionary.load(proto_tgt_dict_path)
-        assert src_dict.pad() == tgt_dict.pad()
         assert src_dict.eos() == tgt_dict.eos()
-        assert src_dict.unk() == tgt_dict.unk()
 
-        task = ComdaTranslationTask(args, src_dict, tgt_dict, proto_src_dict, proto_tgt_dict)
+        task = ComdaTranslationTask(
+            args, src_dict, tgt_dict,
+            proto_src_dict, proto_tgt_dict)
         model = task.build_model(args)
         model.upgrade_state_dict(state_dict)
         model.load_state_dict(state_dict, strict=True)
         return model
 
-    def __init__(self, args, src_dict, tgt_dict, proto_src_dict, proto_tgt_dict):
+    def __init__(self, args, src_dict, tgt_dict,
+                 proto_src_dict, proto_tgt_dict):
         super().__init__(args)
         self.src_dict = src_dict
         self.tgt_dict = tgt_dict
@@ -101,7 +103,7 @@ class ComdaTranslationTask(FairseqTask):
 
     @classmethod
     def setup_task(cls, args, **kwargs):
-        """Setup the task (e.g., load dictionaries).
+        """Setup the task (e.g., load dictionaries and proto dictionaries).
 
         Args:
             args (argparse.Namespace): parsed command-line arguments
@@ -242,3 +244,13 @@ class ComdaTranslationTask(FairseqTask):
     def target_dictionary(self):
         """Return the target :class:`~fairseq.data.Dictionary`."""
         return self.tgt_dict
+
+    @property
+    def proto_source_dictionary(self):
+        """Return the target :class:`~fairseq.data.Dictionary`."""
+        return self.proto_src_dict
+
+    @property
+    def proto_target_dictionary(self):
+        """Return the target :class:`~fairseq.data.Dictionary`."""
+        return self.proto_tgt_dict
