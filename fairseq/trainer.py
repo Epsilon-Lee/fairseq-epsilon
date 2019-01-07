@@ -17,6 +17,7 @@ import torch
 from fairseq import distributed_utils, models, optim, utils
 from fairseq.meters import AverageMeter, StopwatchMeter, TimeMeter
 from fairseq.optim import lr_scheduler
+from fairseq.da import Switchout, Prototyping
 
 
 class Trainer(object):
@@ -53,6 +54,14 @@ class Trainer(object):
 
         self.init_meters(args)
 
+        # initialize da_strategy
+        if args.da_strategy is 'switchout':
+            self.da_strategy = Switchout(task)
+        elif args.da_strategy is 'prototype':
+            self.da_strategy = Prototyping(task)
+        else:
+            self.da_strategy = None
+
     def init_meters(self, args):
         self.meters = OrderedDict()
         self.meters['train_loss'] = AverageMeter()
@@ -85,6 +94,7 @@ class Trainer(object):
 
     @property
     def optimizer(self):
+        # build the optimizer when first called
         if self._optimizer is None:
             self._build_optimizer()
         return self._optimizer
@@ -162,7 +172,13 @@ class Trainer(object):
         # forward and backward pass
         logging_outputs, sample_sizes, ooms = [], [], 0
         for i, sample in enumerate(samples):
+            # apply data augmentation strategy over sample
+            if self.da_strategy:
+                sample = self.da_strategy.augment(sample)
+
+            # move tensor to GPU
             sample = self._prepare_sample(sample)
+
             if sample is None:
                 # when sample is None, run forward/backward on a dummy batch
                 # and ignore the resulting gradients
