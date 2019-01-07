@@ -11,6 +11,7 @@ Train a network across multiple GPUs.
 
 from collections import OrderedDict
 from itertools import chain
+import ipdb
 
 import torch
 
@@ -55,9 +56,9 @@ class Trainer(object):
         self.init_meters(args)
 
         # initialize da_strategy
-        if args.da_strategy is 'switchout':
+        if args.da_strategy == 'switchout':
             self.da_strategy = Switchout(task)
-        elif args.da_strategy is 'prototype':
+        elif args.da_strategy == 'prototype':
             self.da_strategy = Prototyping(task)
         else:
             self.da_strategy = None
