@@ -139,8 +139,8 @@ class ComdaTranslationTask(FairseqTask):
         proto_src_dict = Dictionary.load(os.path.join(args.data[0], 'dict.{}.proto.txt'.format(args.source_lang)))
         proto_tgt_dict = Dictionary.load(os.path.join(args.data[0], 'dict.{}.proto.txt'.format(args.target_lang)))
         assert src_dict.eos() == tgt_dict.eos()
-        print('| [{}] proto-dictionary: {} types'.format(args.source_lang, len(proto_src_dict)))
-        print('| [{}] proto-dictionary: {} types'.format(args.target_lang, len(proto_tgt_dict)))
+        print('| [{}] proto dictionary: {} types'.format(args.source_lang, len(proto_src_dict)))
+        print('| [{}] proto dictionary: {} types'.format(args.target_lang, len(proto_tgt_dict)))
 
         # create mixed source, mixed target dictionaries
         mixed_src_dict = MixedDictionary(src_dict, proto_src_dict)
@@ -224,7 +224,7 @@ class ComdaTranslationTask(FairseqTask):
             prefix = os.path.join(data_path, '{}.{}-{}.'.format(split, src, tgt))
             proto_src_dataset = indexed_dataset(prefix + "{}.proto".format(src), self.proto_src_dict)
             proto_tgt_dataset = indexed_dataset(prefix + "{}.proto".format(tgt), self.proto_tgt_dict)
-            alignment_dataset = indexed_alignment_dataset(prefix + "align")
+            alignment_dataset = indexed_alignment_dataset(prefix + "{}-{}.align".format(src, tgt))
         else:
             proto_src_dataset = proto_tgt_dataset = alignment_dataset = None
             ValueError("Haven't written the code for dealing with "
