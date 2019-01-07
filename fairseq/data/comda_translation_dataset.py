@@ -63,6 +63,7 @@ def collate(
             )
             prev_output_tokens = prev_output_tokens.index_select(0, sort_order)
     else:
+        proto_target_tokens = None
         ntokens = sum(len(s['source']) for s in samples)
 
     # make alignment list: a List of Dict[target_position] = source_position
@@ -78,9 +79,9 @@ def collate(
         'net_input': {
             'src_tokens': src_tokens,
             'src_lengths': src_lengths,
-            'proto_src_tokens': proto_src_tokens
         },
         'target': target,
+        'proto_source': proto_src_tokens,
         'proto_target': proto_target_tokens,
         'alignment': sorted_alignment
     }
