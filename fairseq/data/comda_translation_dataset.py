@@ -6,6 +6,7 @@
 # can be found in the PATENTS file in the same directory.
 
 import numpy as np
+from random import randint
 import torch
 
 from fairseq import utils
@@ -142,6 +143,7 @@ class ComdaTranslationDataset(FairseqDataset):
         max_source_positions=1024, max_target_positions=1024,
         shuffle=True, input_feeding=True, remove_eos_from_source=False, append_eos_to_target=False,
     ):
+        import ipdb; ipdb.set_trace()
         if tgt_dict is not None:
             assert src_dict.pad() == tgt_dict.pad()
             assert src_dict.eos() == tgt_dict.eos()
@@ -253,11 +255,15 @@ class ComdaTranslationDataset(FairseqDataset):
                 'id': i,
                 'source': self.src_dict.dummy_sentence(src_len),
                 'target': self.tgt_dict.dummy_sentence(tgt_len) if self.tgt_dict is not None else None,
+                'proto_source': self.proto_src_dict.dummy_sentence(src_len),
+                'proto_target': self.proto_tgt_dict.dummy_sentence(tgt_len),
+                'align': self.dummy_alignment(src_len, tgt_len),
             }
             for i in range(bsz)
         ])
 
     def num_tokens(self, index):
+
         """Return the number of tokens in a sample. This value is used to
         enforce ``--max-tokens`` during batching."""
         return max(self.src_sizes[index], self.tgt_sizes[index] if self.tgt_sizes is not None else 0)
@@ -290,3 +296,9 @@ class ComdaTranslationDataset(FairseqDataset):
             and hasattr(self.tgt, 'supports_prefetch')
             and self.tgt.supports_prefetch
         )
+
+    def dummy_alignment(self, src_len, tgt_len):
+        align = {}
+        for i in range(tgt_len):
+            align[i] = randint(0, src_len - 1)
+        return align
