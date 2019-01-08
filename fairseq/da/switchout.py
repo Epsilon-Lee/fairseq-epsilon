@@ -55,8 +55,8 @@ class Switchout(object):
             sents).contiguous().masked_fill_(mask, -float("inf"))
         probs = torch.nn.functional.softmax(logits.mul_(self.tau[lang]), dim=1)
         num_words = torch.distributions.Categorical(probs).sample()  # how many words to switch out
-        if num_words[0] > 0:
-            ipdb.set_trace()
+        # if num_words[0] > 0:
+        #     ipdb.set_trace()
 
         # sample the corrupted positions
         corrupt_pos = num_words.data.float().div_(lengths).unsqueeze(
