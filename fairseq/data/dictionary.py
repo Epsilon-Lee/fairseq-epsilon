@@ -229,14 +229,17 @@ class MixedDictionary(object):
         self.indices = origin_dict.indices
         self.origin_dict_size = len(origin_dict)
         self.proto_dict_size = len(proto_dict) - 2  # exclude <pad>, <unk>
-        self.mixed_dict_size = self.origin_dict_size + self.proto_dict_size - 1  # exclude repeated </s>
+
+        # exclude repeated </s> and <Lua heritage>
+        self.mixed_dict_size = self.origin_dict_size + self.proto_dict_size - 2
         for symbol, cnt in zip(origin_dict.symbols, origin_dict.count):
             self.symbols.append(symbol)
             self.count.append(cnt)
-        for symbol in zip(proto_dict.symbols[3:], proto_dict.count[3:]):  # exclude <unk>, </s>, <pad>
+        for symbol, cnt in zip(proto_dict.symbols[4:], proto_dict.count[4:]):  # exclude <unk>, </s>, <pad>
             self.indices[symbol] = len(self.symbols)
             self.symbols.append(symbol)
-        self.nspecial = origin_dict.nspecials  # 3
+            self.count.append(cnt)
+        self.nspecial = origin_dict.nspecial  # 4
         self.pad_index = origin_dict.pad_index
         self.eos_index = origin_dict.eos_index
         self.unk_index = origin_dict.unk_index
@@ -251,6 +254,31 @@ class MixedDictionary(object):
         if idx < self.mixed_dict_size:
             return self.symbols[idx]
         return self.unk_word
+
+    def index(self, sym):
+        """Returns the index of the specified symbol"""
+        if sym in self.indices:
+            return self.indices[sym]
+        return self.unk_index
+
+    def string(self, tensor, bpe_symbol=None, escape_unk=False):
+        """Helper for converting a tensor of token indices to a string.
+
+        Can optionally remove BPE symbols or escape <unk> words.
+        """
+        if torch.is_tensor(tensor) and tensor.dim() == 2:
+            return '\n'.join(self.string(t) for t in tensor)
+
+        def token_string(i):
+            if i == self.unk():
+                return self.unk_string(escape_unk)
+            else:
+                return self[i]
+
+        sent = ' '.join(token_string(i) for i in tensor if i != self.eos())
+        if bpe_symbol is not None:
+            sent = (sent + ' ').replace(bpe_symbol, '').rstrip()
+        return sent
 
     def pad(self):
         """Helper to get index of pad symbol"""
