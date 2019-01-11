@@ -187,7 +187,7 @@ class ComdaTranslationTask(FairseqTask):
             for k in itertools.count():
                 split_k = split + (str(k) if k > 0 else '')
 
-                import ipdb; ipdb.set_trace()
+                # import ipdb; ipdb.set_trace()
 
                 # infer langcode
                 src, tgt = self.args.source_lang, self.args.target_lang
@@ -224,7 +224,11 @@ class ComdaTranslationTask(FairseqTask):
             prefix = os.path.join(data_path, '{}.{}-{}.'.format(split, src, tgt))
             proto_src_dataset = indexed_dataset(prefix + "{}.proto".format(src), self.proto_src_dict)
             proto_tgt_dataset = indexed_dataset(prefix + "{}.proto".format(tgt), self.proto_tgt_dict)
-            alignment_dataset = indexed_alignment_dataset(prefix + "{}-{}.align".format(src, tgt))
+            if split == 'train':
+                alignment_dataset = indexed_alignment_dataset(prefix + "align")
+            else:
+                print("WARNING: valid alignment should be prepared in the data folder.")
+                alignment_dataset = None
         else:
             proto_src_dataset = proto_tgt_dataset = alignment_dataset = None
             ValueError("Haven't written the code for dealing with "
