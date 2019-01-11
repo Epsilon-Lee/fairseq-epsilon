@@ -14,6 +14,7 @@ import itertools
 import os
 import math
 import random
+import ipdb
 
 import torch
 
@@ -28,6 +29,8 @@ def main(args):
         args.max_tokens = 6000
     print(args)
 
+    # ipdb.set_trace()
+
     if not torch.cuda.is_available():
         raise NotImplementedError('Training on CPU is not supported')
     torch.cuda.set_device(args.device_id)
@@ -41,6 +44,7 @@ def main(args):
 
     # Build model and criterion
     model = task.build_model(args)
+    # ipdb.set_trace()
     criterion = task.build_criterion(args)
     print('| model {}, criterion {}'.format(args.arch, criterion.__class__.__name__))
     print('| num. model params: {}'.format(sum(p.numel() for p in model.parameters())))
@@ -78,6 +82,7 @@ def main(args):
 
     # Load the latest checkpoint if one is available
     if not load_checkpoint(args, trainer, epoch_itr):
+        # pass
         trainer.dummy_train_step([dummy_batch])
 
     # Train until the learning rate gets too small
@@ -92,6 +97,7 @@ def main(args):
         # train for one epoch
         train(args, trainer, task, epoch_itr)
 
+        # validate each epoch
         if epoch_itr.epoch % args.validate_interval == 0:
             valid_losses = validate(args, trainer, task, epoch_itr, valid_subsets)
 
@@ -125,6 +131,7 @@ def train(args, trainer, task, epoch_itr):
     first_valid = args.valid_subset.split(',')[0]
     max_update = args.max_update or math.inf
     for i, samples in enumerate(progress, start=epoch_itr.iterations_in_epoch):
+        # ipdb.set_trace()
         log_output = trainer.train_step(samples)
         if log_output is None:
             continue
