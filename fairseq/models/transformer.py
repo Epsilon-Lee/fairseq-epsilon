@@ -24,6 +24,8 @@ from . import (
     register_model_architecture,
 )
 
+from fairseq.tasks.translation_comda import ComdaTranslationTask
+
 
 @register_model('transformer')
 class TransformerModel(FairseqModel):
@@ -111,6 +113,9 @@ class TransformerModel(FairseqModel):
             args.max_target_positions = 1024
 
         src_dict, tgt_dict = task.source_dictionary, task.target_dictionary
+        if isinstance(task, ComdaTranslationTask):
+            # import ipdb; ipdb.set_trace()
+            src_dict, tgt_dict = task.mixed_source_dictionary, task.mixed_target_dictionary
 
         def build_embedding(dictionary, embed_dim, path=None):
             num_embeddings = len(dictionary)
