@@ -261,6 +261,13 @@ class MixedDictionary(object):
             return self.indices[sym]
         return self.unk_index
 
+    def unk_string(self, escape=False):
+        """Return unknown string, optionally escaped as: <<unk>>"""
+        if escape:
+            return '<{}>'.format(self.unk_word)
+        else:
+            return self.unk_word
+
     def string(self, tensor, bpe_symbol=None, escape_unk=False):
         """Helper for converting a tensor of token indices to a string.
 
