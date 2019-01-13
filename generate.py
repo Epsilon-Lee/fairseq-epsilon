@@ -94,8 +94,8 @@ def main(args):
     # scorer = bleu.Scorer(tgt_dict.pad(), tgt_dict.eos(), tgt_dict.unk())
     num_sentences = 0
     has_target = True
-    f_infer_saveto = open(args.infer_save_to, 'w')
-    f_goldn_saveto = open(args.goldn_save_to, 'w')
+    f_infer_saveto = open(args.infer_save_to, 'w', encoding='utf-8')
+    f_goldn_saveto = open(args.goldn_save_to, 'w', encoding='utf-8')
     with progress_bar.build_progress_bar(args, itr) as t:
         if args.score_reference:
             translations = translator.score_batched_itr(t, cuda=use_cuda, timer=gen_timer)
@@ -179,5 +179,4 @@ def main(args):
 if __name__ == '__main__':
     parser = options.get_generation_parser()
     args = options.parse_args_and_arch(parser)
-    ipdb.set_trace()
     main(args)
