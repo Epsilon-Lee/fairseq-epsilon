@@ -8,6 +8,8 @@ import os
 import glob
 import time
 
+from fairseq.tasks import TASK_REGISTRY
+
 import argparse
 
 parser = argparse.ArgumentParser("Callback validation script: do BLEU val for each saved ckpts.")
@@ -24,6 +26,14 @@ parser.add_argument("--corpus", type=str, required=True,
                     help="folder named after the experimental corpus.")
 parser.add_argument("--batch-size", type=int, default=32)
 parser.add_argument("--beam-size", type=int, default=5)
+# comda task specific args
+parser.add_argument("--task", metavar="TASK", default="translation",
+                    choices=TASK_REGISTRY.keys(),
+                    help="task")
+parser.add_argument("--use-xxx", action="store_true",
+                    help="use abstract token <xxx>, only true for comda")
+parser.add_argument('--raw-text', action='store_true',
+                    help='load raw text dataset')
 # currently, test both valid and test
 # parser.add_argument("--split", type=str, default="valid")
 args = parser.parse_args()
@@ -38,6 +48,9 @@ ckpt_folder = args.ckpt_path
 batch_size = args.batch_size
 beam = args.beam_size
 ckpt_log = os.path.join(args.ckpt_path, "validated_ckpt_log.txt")
+task = args.task
+raw_text = args.raw_text
+use_xxx = args.use_xxx
 
 new_ckpts = []
 # create of load validated ckpt log
@@ -103,8 +116,15 @@ while True:
                              "--beam {} " \
                              "--infer-save-to {} " \
                              "--goldn-save-to {} " \
-                             "--quiet".format(input, split, ckpt, batch_size, beam,
+                             "--quiet ".format(input, split, ckpt, batch_size, beam,
                                               infer_save_to, goldn_save_to)
+
+            if task == 'translation_comda_xxx':
+                run_python_cmd += "--task {} ".format(task)
+            if raw_text:
+                run_python_cmd += "--raw-text "
+            if use_xxx:
+                run_python_cmd += "--use-xxx "
 
             # write to log.txt
             os.system("echo '' | tee -a {}/{}/{}/log.txt".format(TMP, data, EXP))
@@ -128,7 +148,7 @@ while True:
         with open(ckpt_log, 'a+') as f:
             f.write(ckpt + '\n')
 
-    time.sleep(60)
+    # time.sleep(60)
 
 # print("start validate on newly saved checkpoints")
 # subprocess.call("bash/iwslt14.de2en.infer.EXP1.sh", shell=True)
