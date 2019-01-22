@@ -7,6 +7,7 @@ CUDA_VISIBLE_DEVICES=0 python train.py \
     --lr 0.001 \
     --decay-until 8000 \
     --lr-scheduler switchout \
+    --lr-shrink 0.97 \
     --optimizer adam \
     --min-lr 0.0 \
     --max-update 100000 \
