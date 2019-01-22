@@ -48,6 +48,8 @@ def get_parser():
                         help="number of target words to retain")
     parser.add_argument("--nwordssrc", metavar="N", default=-1, type=int,
                         help="number of source words to retain")
+    parser.add_argument("--use-xxx", action="store_true",
+                        help="use abstract token <xxx>, only true for comda")
     parser.add_argument("--alignfile", metavar="ALIGN", default=None,
                         help="an alignment file (optional)")
     parser.add_argument("--output-format", metavar="FORMAT", default="binary",
@@ -90,7 +92,7 @@ def main(args):
         assert not args.tgtdict, "cannot combine --tgtdict and --joined-dictionary"
         src_dict = build_dictionary(
             {train_path(lang) for lang in [args.source_lang, args.target_lang]},
-            args.workers,
+            args.use_xxx, args.workers
         )
         tgt_dict = src_dict
     else:
@@ -100,7 +102,9 @@ def main(args):
             assert (
                 args.trainpref
             ), "--trainpref must be set if --srcdict is not specified"
-            src_dict = build_dictionary([train_path(args.source_lang)], args.workers)
+            src_dict = build_dictionary(
+                    [train_path(args.source_lang)],
+                    args.use_xxx, args.workers)
         if target:
             if args.tgtdict:
                 tgt_dict = dictionary.Dictionary.load(args.tgtdict)
@@ -109,7 +113,8 @@ def main(args):
                     args.trainpref
                 ), "--trainpref must be set if --tgtdict is not specified"
                 tgt_dict = build_dictionary(
-                    [train_path(args.target_lang)], args.workers
+                    [train_path(args.target_lang)],
+                    args.use_xxx, args.workers
                 )
 
     src_dict.finalize(
@@ -269,15 +274,17 @@ def main(args):
 def build_and_save_dictionary(
     train_path, output_path, num_workers, freq_threshold, max_words
 ):
-    dict = build_dictionary([train_path], num_workers)
+    # tmp solution
+    use_xxx = False
+    dict = build_dictionary([train_path], use_xxx, num_workers)
     dict.finalize(threshold=freq_threshold, nwords=max_words)
     dict_path = os.path.join(output_path, "dict.txt")
     dict.save(dict_path)
     return dict_path
 
 
-def build_dictionary(filenames, workers):
-    d = dictionary.Dictionary()
+def build_dictionary(filenames, use_xxx, workers):
+    d = dictionary.Dictionary(use_xxx=use_xxx)
     for filename in filenames:
         Tokenizer.add_file_to_dictionary(filename, d, tokenize_line, workers)
     return d
