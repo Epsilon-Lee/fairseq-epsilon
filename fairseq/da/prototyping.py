@@ -4,8 +4,10 @@ Date  : Jan. 7 2019
 """
 
 import ipdb
-
+import random
 import torch
+
+from ..tasks.translation_comda_xxx import ComdaXXXTranslationTask
 
 
 class Prototyping(object):
@@ -13,10 +15,14 @@ class Prototyping(object):
     def __init__(self, task, freq=None):
         self.src_dict = task.src_dict
         self.tgt_dict = task.tgt_dict
-        self.proto_src_dict = task.proto_src_dict
-        self.proto_tgt_dict = task.proto_tgt_dict
-        self.mixed_src_dict = task.mixed_src_dict
-        self.mixed_tgt_dict = task.mixed_tgt_dict
+        if not isinstance(task, ComdaXXXTranslationTask):
+            self.proto_src_dict = task.proto_src_dict
+            self.proto_tgt_dict = task.proto_tgt_dict
+            self.mixed_src_dict = task.mixed_src_dict
+            self.mixed_tgt_dict = task.mixed_tgt_dict
+            self.prototyping_strategy = 'length-invariant'
+        else:
+            self.prototyping_strategy = 'length-variant'
 
         if freq is not None:
             self.freq_threshold = freq
@@ -26,11 +32,13 @@ class Prototyping(object):
     def augment(self, sample):
         src_tokens = sample['net_input']['src_tokens']  # [N, L]
         tgt_tokens = sample['target']
+        if self.prototyping_strategy == 'length-variant':
+            new_sample = self._augment_length_variant(sample)
+            return new_sample
         proto_src_tokens = sample['proto_source']
         proto_tgt_tokens = sample['proto_target']
         alignment = sample['alignment']  # List of N alignment_map dicts
 
-        ipdb.set_trace()
         N = src_tokens.shape[0]
 
         # unk based prototyping
@@ -70,7 +78,7 @@ class Prototyping(object):
 
     def _unk_transform(self, src, proto_src,
                    tgt, proto_tgt, alignment_map):
-        ipdb.set_trace()
+        # ipdb.set_trace()
         src, tgt = src.tolist(), tgt.tolist()
         proto_src, proto_tgt = proto_src.tolist(), proto_tgt.tolist()
         tgt_len = len(tgt)
@@ -113,7 +121,7 @@ class Prototyping(object):
         new_src = torch.LongTensor(src)
         new_tgt = torch.LongTensor(tgt)
 
-        ipdb.set_trace()
+        # ipdb.set_trace()
 
         return new_src, new_tgt
 
@@ -144,3 +152,62 @@ class Prototyping(object):
         new_tgt = torch.LongTensor(tgt)
 
         return new_src, new_tgt
+
+    def _augment_length_variant(self, sample):
+
+        def copy_tensor(src, dst):
+            assert dst.numel() == src.numel()
+            if True:
+                eos_idx = self.tgt_dict.eos()
+                # assert src[-1] == eos_idx
+                length = dst.shape[0]
+                pos = length
+                while src[pos - 1] != eos_idx:
+                    pos -= 1
+                    if pos == 0:
+                        print('AssertionError: cannot find pos equal eos_idx')
+                        ipdb.set_trace()
+                # ipdb.set_trace()
+                dst[0] = eos_idx
+                dst[1:pos] = src[0:pos - 1]
+            else:
+                dst.copy_(src)
+
+        net_input = sample['net_input']
+        src_tokens = net_input['src_tokens']
+        src_lengths = net_input['src_lengths']
+        tgt_tokens = sample['target']
+        alignment = sample['alignment']
+        proto_src_tokens = src_tokens.clone()
+        proto_src_lengths = src_lengths.clone()
+        proto_tgt_tokens = tgt_tokens.clone()
+        proto_prev_output_tokens = tgt_tokens.clone()
+        enc_feat_mask_list = []
+        for src, tgt, prev_tgt, align in zip(proto_src_tokens, \
+                proto_tgt_tokens, proto_prev_output_tokens, alignment):
+            num_aligned_phrases = len(align)
+            # randomly picked phrase pair: 'm-n:p-q'
+            randn_ppair = align[random.randint(0, num_aligned_phrases - 1)]
+            m_n, p_q = randn_ppair.split(':')
+            m, n = m_n.split('-')
+            p, q = p_q.split('-')
+            m, n, p, q = int(m), int(n), int(p), int(q)
+            src[m : n + 1] = self.src_dict.xxx()
+            tgt[p : q + 1] = self.tgt_dict.xxx()
+            enc_feat_mask = 1 - src.eq(self.src_dict.xxx()) - src.eq(self.src_dict.pad())
+            enc_feat_mask_list.append(enc_feat_mask.tolist())
+            copy_tensor(tgt, prev_tgt)
+        # ipdb.set_trace()
+        enc_feat_mask = torch.Tensor(enc_feat_mask_list)
+        sample['enc_feat_mask'] = enc_feat_mask
+        sample['proto_net_input'] = {}
+        sample['proto_net_input']['src_tokens'] = proto_src_tokens
+        sample['proto_net_input']['src_lengths'] = proto_src_lengths
+        sample['proto_net_input']['prev_output_tokens'] = proto_prev_output_tokens
+
+        sample['proto_target'] = proto_tgt_tokens
+
+        return sample
+
+
+
