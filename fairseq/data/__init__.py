@@ -11,10 +11,11 @@ from .backtranslation_dataset import BacktranslationDataset
 from .concat_dataset import ConcatDataset
 from .indexed_dataset import (
     IndexedDataset, IndexedCachedDataset, IndexedInMemoryDataset, IndexedRawTextDataset,
-    IndexedAlignmentDataset
+    IndexedAlignmentDataset, IndexedPhraseAlignmentDataset
 )
 from .language_pair_dataset import LanguagePairDataset
 from .comda_translation_dataset import ComdaTranslationDataset
+from .comda_xxx_translation_dataset import ComdaXXXTranslationDataset
 from .monolingual_dataset import MonolingualDataset
 from .round_robin_zip_datasets import RoundRobinZipDatasets
 from .token_block_dataset import TokenBlockDataset
@@ -46,6 +47,8 @@ __all__ = [
     'TokenBlockDataset',
     'TransformEosDataset',
     'IndexedAlignmentDataset',
+    'IndexedPhraseAlignmentDataset',
     'ComdaTranslationDataset',
+    'ComdaXXXTranslationDataset',
     'MixedDictionary'
 ]
