@@ -6,6 +6,7 @@
 # can be found in the PATENTS file in the same directory.
 
 import math
+import ipdb
 
 import torch
 import torch.nn as nn
@@ -481,12 +482,16 @@ class TransformerDecoder(FairseqIncrementalDecoder):
 
         if positions is not None:
             x += positions
+
+        # input dropout
         x = F.dropout(x, p=self.dropout, training=self.training)
 
         # B x T x C -> T x B x C
         x = x.transpose(0, 1)
+        # only record final layer attention
         attn = None
 
+        # list to hold each layer's representation outputs, including emb
         inner_states = [x]
 
         # decoder layers
@@ -681,6 +686,11 @@ class TransformerDecoderLayer(nn.Module):
                 prev_self_attn_state=None, prev_attn_state=None, self_attn_mask=None,
                 self_attn_padding_mask=None):
         """
+        ln =>
+        self_att, residual => ln =>
+        src_att, residual => ln =>
+        ff, residual => ln
+
         Args:
             x (Tensor): input to the layer of shape `(seq_len, batch, embed_dim)`
             encoder_padding_mask (ByteTensor): binary ByteTensor of shape
