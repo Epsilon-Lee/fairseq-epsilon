@@ -77,7 +77,7 @@ class CrossEntropyCriterionWithEncInv(FairseqCriterion):
         enc_output = model.encoder(concat_src_tokens, concat_src_lengths)
         encoder_out = enc_output['encoder_out']  # [L, 2N, D]
         encoder_padding_mask = enc_output['encoder_padding_mask']  # [2N, L]
-        # slice orign encoder output and proto encoder output
+        # slice to get orign encoder output and proto encoder output
         orign_encoder_out, proto_encoder_out = encoder_out[:, 0:N, :], \
                 encoder_out[:, N:2*N, :]
         # orign_encoder_padding_mask = encoder_padding_mask[0:N]  # [N, L]
@@ -101,25 +101,30 @@ class CrossEntropyCriterionWithEncInv(FairseqCriterion):
                     [sample['target'], sample['proto_target']],
                     0
                 ).view(-1)
-        loss = F.nll_loss(lprobs, concat_target, size_average=False, ignore_index=self.padding_idx,
-                          reduce=reduce) / 2.0
+        # divide 2: to get averaged one batch total loss
+        loss = F.nll_loss(
+                lprobs, concat_target, size_average=False,
+                ignore_index=self.padding_idx,
+                reduce=reduce) / 2.0
 
         # compute encoder representation invariance (enc_inv) loss
         delta = orign_encoder_out - proto_encoder_out
-        delta_square_sum = torch.sum(delta * delta, 2).t()
+        delta_square_sum = torch.sum(delta * delta, 2).t()  # B x T
         # print('enc_feat_mask.shape:')
         # print(sample['enc_feat_mask'].shape)
         # print('delta_square_sum.shape:')
         # print(delta_square_sum.shape)
         # print()
-        masked_delta_l2 = sample['enc_feat_mask'] * delta_square_sum  # [N, L]
+        masked_delta_l2 = sample['enc_feat_mask'] * delta_square_sum  # B x T
         # avg_masked_delta_l2 = masked_delta_l2 / torch.sum(sample['enc_feat_mask'])
         masked_delta_l2 = torch.sum(masked_delta_l2)
+        scaled_masked_delta_l2 = (sample['ntokens'] / N) * masked_delta_l2
 
         # compute final loss through interpolation
         # ipdb.set_trace()
         coef = self.coef
-        final_loss = coef * loss + (1 - coef) * masked_delta_l2
+        # final_loss = coef * loss + (1 - coef) * masked_delta_l2
+        final_loss = coef * loss + (1 - coef) * scaled_masked_delta_l2
 
         # logging statistics
         sample_size = sample['target'].size(0) if self.args.sentence_avg else sample['ntokens']
@@ -128,7 +133,7 @@ class CrossEntropyCriterionWithEncInv(FairseqCriterion):
             'ntokens': sample['ntokens'],
             'nsentences': sample['target'].size(0),
             'sample_size': sample_size,
-            'enc_inv_loss': (1 - coef) * masked_delta_l2.data,
+            'enc_inv_loss': scaled_masked_delta_l2.data,
         }
 
         return final_loss, sample_size, logging_output
@@ -140,11 +145,13 @@ class CrossEntropyCriterionWithEncInv(FairseqCriterion):
         ntokens = sum(log.get('ntokens', 0) for log in logging_outputs)
         nsentences = sum(log.get('nsentences', 0) for log in logging_outputs)
         sample_size = sum(log.get('sample_size', 0) for log in logging_outputs)
+        enc_inv_loss_sum = sum(log.get('enc_inv_loss', 0) for log in logging_outputs)
         agg_output = {
             'loss': loss_sum / sample_size / math.log(2),
             'ntokens': ntokens,
             'nsentences': nsentences,
             'sample_size': sample_size,
+            'enc_inv_loss': enc_inv_loss_sum / nsentences,
         }
         if sample_size != ntokens:
             agg_output['nll_loss'] = loss_sum / ntokens / math.log(2)
