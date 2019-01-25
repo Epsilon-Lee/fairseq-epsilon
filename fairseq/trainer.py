@@ -80,7 +80,8 @@ class Trainer(object):
             self.meters['loss_scale'] = AverageMeter()  # dynamic loss scale
         self.meters['wall'] = TimeMeter()      # wall time in seconds
         self.meters['train_wall'] = StopwatchMeter()  # train wall time in seconds
-
+        if args.criterion == 'cross_entropy_with_encinv':
+            self.meters['enc_inv_loss'] =  AverageMeter()
 
     @property
     def model(self):
@@ -170,12 +171,16 @@ class Trainer(object):
         if not dummy_batch:
             self.meters['train_wall'].start()
 
+        # ipdb.set_trace()
         # forward and backward pass
         logging_outputs, sample_sizes, ooms = [], [], 0
         for i, sample in enumerate(samples):
             # apply data augmentation strategy over sample
             if self.da_strategy:
-                sample = self.da_strategy.augment(sample)
+                # ipdb.set_trace()
+                sample = self.da_strategy.augment(
+                        sample,
+                        dummy_batch=dummy_batch)
 
             # move tensor to GPU
             sample = self._prepare_sample(sample)
@@ -217,6 +222,7 @@ class Trainer(object):
                 else:
                     raise e
 
+        # ipdb.set_trace()
         if ooms > 0 and self._oom_batch is not None:
             self.handle_ooms(ooms)
 
@@ -278,6 +284,10 @@ class Trainer(object):
             self.meters['train_loss'].update(logging_output.get('loss', 0), sample_size)
             if 'nll_loss' in logging_output:
                 self.meters['train_nll_loss'].update(logging_output.get('nll_loss', 0), ntokens)
+            if 'enc_inv_loss' in logging_output:
+                self.meters['enc_inv_loss'].update(
+                        logging_output.get('enc_inv_loss', 0),
+                        logging_output.get('nsentences', 0))
         except OverflowError as e:
             print('| WARNING: overflow detected, ' + str(e))
             self.zero_grad()
@@ -321,6 +331,7 @@ class Trainer(object):
             if ignore_results:
                 logging_output, sample_size = {}, 0
 
+        # ipdb.set_trace()
         # gather logging outputs from all replicas
         if self.args.distributed_world_size > 1:
             logging_output, sample_size = zip(*distributed_utils.all_gather_list(
