@@ -264,9 +264,9 @@ class ComdaXXXTranslationDataset(FairseqDataset):
         )
 
     def dummy_alignment(self, src_len, tgt_len):
-        align = {}
+        align = []
         for j in range(tgt_len):
             i = randint(0, src_len - 1)
-            align['{}-{}'.format(j, j)] = '{}-{}'.format(i, i)
+            align.append('{}-{}:{}-{}'.format(j, j, i, i))
         return align
 
