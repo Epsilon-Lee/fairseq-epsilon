@@ -272,7 +272,7 @@ class IndexedRawTextDataset(IndexedDataset):
         self.size = len(self.tokens_list)
 
     def read_data(self, path, dictionary):
-        with open(path, 'r') as f:
+        with open(path, 'r', encoding='utf-8') as f:
             for line in f:
                 self.lines.append(line.strip('\n'))
                 tokens = Tokenizer.tokenize(
