@@ -15,6 +15,8 @@ class Prototyping(object):
     def __init__(self, task, freq=None):
         self.src_dict = task.src_dict
         self.tgt_dict = task.tgt_dict
+        self.left_pad_source = task.args.left_pad_source
+        self.left_pad_target = task.args.left_pad_target
         if not isinstance(task, ComdaXXXTranslationTask):
             self.proto_src_dict = task.proto_src_dict
             self.proto_tgt_dict = task.proto_tgt_dict
@@ -29,11 +31,13 @@ class Prototyping(object):
         else:
             self.freq_threshold = 0
 
-    def augment(self, sample):
+    def augment(self, sample, dummy_batch=False):
         src_tokens = sample['net_input']['src_tokens']  # [N, L]
         tgt_tokens = sample['target']
         if self.prototyping_strategy == 'length-variant':
-            new_sample = self._augment_length_variant(sample)
+            new_sample = self._augment_length_variant(
+                    sample,
+                    dummy_batch=dummy_batch)
             return new_sample
         proto_src_tokens = sample['proto_source']
         proto_tgt_tokens = sample['proto_target']
@@ -153,11 +157,12 @@ class Prototyping(object):
 
         return new_src, new_tgt
 
-    def _augment_length_variant(self, sample):
+    def _augment_length_variant(self, sample, dummy_batch=False):
 
         def copy_tensor(src, dst):
             assert dst.numel() == src.numel()
-            if True:
+            if True and not dummy_batch:
+            # if True and not dummy_batch:
                 eos_idx = self.tgt_dict.eos()
                 # assert src[-1] == eos_idx
                 length = dst.shape[0]
@@ -173,18 +178,23 @@ class Prototyping(object):
             else:
                 dst.copy_(src)
 
+        # ipdb.set_trace()
         net_input = sample['net_input']
         src_tokens = net_input['src_tokens']
         src_lengths = net_input['src_lengths']
         tgt_tokens = sample['target']
+        # tgt_lengths = sample['tgt_lengths']
         alignment = sample['alignment']
         proto_src_tokens = src_tokens.clone()
         proto_src_lengths = src_lengths.clone()
         proto_tgt_tokens = tgt_tokens.clone()
         proto_prev_output_tokens = tgt_tokens.clone()
         enc_feat_mask_list = []
-        for src, tgt, prev_tgt, align in zip(proto_src_tokens, \
-                proto_tgt_tokens, proto_prev_output_tokens, alignment):
+        for src, src_len, tgt, prev_tgt, align in zip(
+                proto_src_tokens, proto_src_lengths,
+                proto_tgt_tokens,
+                proto_prev_output_tokens, alignment):
+
             num_aligned_phrases = len(align)
             # randomly picked phrase pair: 'm-n:p-q'
             randn_ppair = align[random.randint(0, num_aligned_phrases - 1)]
@@ -192,8 +202,18 @@ class Prototyping(object):
             m, n = m_n.split('-')
             p, q = p_q.split('-')
             m, n, p, q = int(m), int(n), int(p), int(q)
-            src[m : n + 1] = self.src_dict.xxx()
-            tgt[p : q + 1] = self.tgt_dict.xxx()
+            if self.left_pad_source:
+                src_pad_len = src_tokens.shape[1] - src_len
+            else:
+                src_pad_len = 0
+            if self.left_pad_target:
+                raise ValueError('left_pad_target should be False!')
+                # tgt_pad_len = tgt_tokens.shape[1] - tgt_len
+            else:
+                tgt_pad_len = 0
+            # src[m : n + 1] = self.src_dict.xxx()
+            src[src_pad_len + m : src_pad_len + n + 1] = self.src_dict.xxx()
+            tgt[tgt_pad_len + p : tgt_pad_len + q + 1] = self.tgt_dict.xxx()
             enc_feat_mask = 1 - src.eq(self.src_dict.xxx()) - src.eq(self.src_dict.pad())
             enc_feat_mask_list.append(enc_feat_mask.tolist())
             copy_tensor(tgt, prev_tgt)
