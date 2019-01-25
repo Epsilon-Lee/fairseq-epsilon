@@ -13,8 +13,10 @@ import torch
 
 class Dictionary(object):
     """A mapping from symbols to consecutive integers"""
-    def __init__(self, pad='<pad>', eos='</s>', unk='<unk>'):
+    def __init__(self, use_xxx=False, pad='<pad>', eos='</s>', unk='<unk>', xxx='<xxx>'):
         self.unk_word, self.pad_word, self.eos_word = unk, pad, eos
+        if use_xxx:
+            self.xxx_word = xxx
         self.symbols = []
         self.count = []
         self.indices = {}
@@ -23,6 +25,8 @@ class Dictionary(object):
         self.pad_index = self.add_symbol(pad)
         self.eos_index = self.add_symbol(eos)
         self.unk_index = self.add_symbol(unk)
+        if use_xxx:
+            self.xxx_index = self.add_symbol(xxx)
         self.nspecial = len(self.symbols)
 
     def __eq__(self, other):
@@ -152,8 +156,15 @@ class Dictionary(object):
         """Helper to get index of unk symbol"""
         return self.unk_index
 
+    def xxx(self):
+        """Helper to get index of xxx symbol"""
+        if self.xxx:
+            return self.xxx_index
+        else:
+            raise ValueError("No xxx symbol in this dictionary!")
+
     @classmethod
-    def load(cls, f, ignore_utf_errors=False):
+    def load(cls, f, use_xxx=False, ignore_utf_errors=False):
         """Loads the dictionary from a text file with the format:
 
         ```
@@ -166,17 +177,20 @@ class Dictionary(object):
             try:
                 if not ignore_utf_errors:
                     with open(f, 'r', encoding='utf-8') as fd:
-                        return cls.load(fd)
+                        return cls.load(fd, use_xxx)
                 else:
                     with open(f, 'r', encoding='utf-8', errors='ignore') as fd:
-                        return cls.load(fd)
+                        return cls.load(fd, use_xxx)
             except FileNotFoundError as fnfe:
                 raise fnfe
             except Exception:
                 raise Exception("Incorrect encoding detected in {}, please "
                                 "rebuild the dataset".format(f))
 
-        d = cls()
+        if use_xxx:
+            d = cls(use_xxx=use_xxx)
+        else:
+            d = cls()
         for line in f.readlines():
             idx = line.rfind(' ')
             word = line[:idx]
