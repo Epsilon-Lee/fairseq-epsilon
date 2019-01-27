@@ -27,6 +27,8 @@ class SwitchoutSchedule(FairseqLRScheduler):
         #                     help='force annealing at specified epoch')
         parser.add_argument('--decay-until', type=int, default=4000,
                             help='decay learning rate until certain update number')
+        parser.add_argument('--decay-interval', type=int, default=1000,
+                            help='decay learning rate every certain update number')
         # fmt: on
 
     def step(self, epoch, val_loss=None):
@@ -36,7 +38,7 @@ class SwitchoutSchedule(FairseqLRScheduler):
 
     def step_update(self, num_updates):
         """Update the learning rate after each update."""
-        if num_updates >= self.args.decay_until and num_updates % 1000 == 0:
+        if num_updates >= self.args.decay_until and num_updates % self.args.decay_interval == 0:
             self.decay_cnt += 1
             self.optimizer.set_lr(self.lr * self.args.lr_shrink ** self.decay_cnt)
         return self.optimizer.get_lr()
