@@ -41,7 +41,7 @@ class CrossEntropyCriterion(FairseqCriterion):
             'sample_size': sample_size,
         }
         if self.args.repeat_batch > 1:
-            loss *= self.task.args.repeat_batch
+            loss *= self.args.repeat_batch
         return loss, sample_size, logging_output
 
     @staticmethod
