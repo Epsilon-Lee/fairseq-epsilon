@@ -40,6 +40,8 @@ class CrossEntropyCriterion(FairseqCriterion):
             'nsentences': sample['target'].size(0),
             'sample_size': sample_size,
         }
+        if self.task.args.repeat_batch > 1:
+            loss *= self.task.args.repeat_batch
         return loss, sample_size, logging_output
 
     @staticmethod
