@@ -61,6 +61,9 @@ class TranslationTask(FairseqTask):
                             help='max number of tokens in the target sequence')
         parser.add_argument('--upsample-primary', default=1, type=int,
                             help='amount to upsample primary dataset')
+        parser.add_argument("--repeat-batch", default=1, type=int,
+                            help='scale factor of gradient update, to emulate'\
+                            'repeated batches')
         # fmt: on
 
     @staticmethod
