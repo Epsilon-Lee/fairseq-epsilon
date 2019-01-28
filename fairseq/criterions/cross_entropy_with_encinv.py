@@ -135,7 +135,8 @@ class CrossEntropyCriterionWithEncInv(FairseqCriterion):
             'sample_size': sample_size,
             'enc_inv_loss': scaled_masked_delta_l2.data,
         }
-
+        if self.args.repeat_batch > 1:
+            final_loss *= self.args.repeat_batch
         return final_loss, sample_size, logging_output
 
     @staticmethod
