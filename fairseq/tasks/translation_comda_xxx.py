@@ -67,10 +67,19 @@ class ComdaXXXTranslationTask(FairseqTask):
                             help='max number of tokens in the target sequence')
         parser.add_argument('--upsample-primary', default=1, type=int,
                             help='amount to upsample primary dataset')
-        parser.add_argument("--use-xxx", action="store_true",
-                            help="use abstract token <xxx>, only true for comda")
-        parser.add_argument("--coefficient", default=0.5, type=float,
-                            help="the interpolation coefficient before enc_inv loss and mle loss")
+        parser.add_argument('--use-xxx', action='store_true',
+                            help='use abstract token <xxx>, only true for'\
+                            'comda')
+        parser.add_argument('--coefficient', default=0.5, type=float,
+                            help='the interpolation coefficient before'\
+                            'enc_inv loss and mle loss')
+        parser.add_argument("--length-invariant", default='True', type=str,
+                            help='whether to use same number of placeholder'\
+                            'xxx to replace each specifit token or to use a'\
+                            'sinple placeholder')
+        parser.add_argument("--repeat-batch", default=1, type=int,
+                            help='scale factor of gradient update, to emulate'\
+                            'repeated batches')
         # fmt: on
 
     @staticmethod
