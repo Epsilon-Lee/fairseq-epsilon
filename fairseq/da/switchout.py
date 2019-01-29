@@ -26,7 +26,7 @@ class Switchout(object):
         self.src_dict = task.src_dict
         self.tgt_dict = task.tgt_dict
 
-    def augment(self, sample):
+    def augment(self, sample, dummy_batch=False):
         """
         Refer to the appendix of the original paper for reference
         implementation.
