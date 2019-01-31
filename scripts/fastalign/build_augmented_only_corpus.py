@@ -68,7 +68,7 @@ for i in range(args.repeat):
         saveto_tgt_corpus.append(proto_t)
 
 with open(saveto_src_path, 'w', encoding='utf-8') as f_proto_src:
-    with open(saveto_tgt_path, 'w') as f_proto_tgt:
+    with open(saveto_tgt_path, 'w', encoding='utf-8') as f_proto_tgt:
         for s, t in zip(saveto_src_corpus, saveto_tgt_corpus):
             f_proto_src.write(' '.join(s) + '\n')
             f_proto_tgt.write(' '.join(t) + '\n')
