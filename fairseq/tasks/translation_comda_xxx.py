@@ -249,7 +249,9 @@ class ComdaXXXTranslationTask(FairseqTask):
     def max_positions(self):
         """Return the max sentence length allowed by the task."""
         return (self.args.max_source_positions, self.args.max_target_positions)
-@property def source_dictionary(self):
+
+    @property
+    def source_dictionary(self):
         """Return the source :class:`~fairseq.data.Dictionary`."""
         return self.src_dict
 
