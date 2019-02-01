@@ -218,7 +218,7 @@ class ComdaXXXTranslationTask(FairseqTask):
             src_dataset = ConcatDataset(src_datasets, sample_ratios)
             tgt_dataset = ConcatDataset(tgt_datasets, sample_ratios)
 
-        if split == 'train':
+        if split == 'train' and not task.args.no_comgrad:
             # ipdb.set_trace()
             phrase_alignment_dataset = indexed_phrase_alignment_dataset(
                     prefix + "phrase-align")
@@ -226,7 +226,7 @@ class ComdaXXXTranslationTask(FairseqTask):
             print("WARNING: valid alignment should be prepared in the data folder.")
             phrase_alignment_dataset = None
 
-        if split == 'train':
+        if split == 'train' and task.args.no_comgrad:
             self.datasets[split] = ComdaXXXTranslationDataset(
                 src_dataset, src_dataset.sizes, self.src_dict,
                 tgt_dataset, tgt_dataset.sizes, self.tgt_dict,
@@ -249,9 +249,7 @@ class ComdaXXXTranslationTask(FairseqTask):
     def max_positions(self):
         """Return the max sentence length allowed by the task."""
         return (self.args.max_source_positions, self.args.max_target_positions)
-
-    @property
-    def source_dictionary(self):
+@property def source_dictionary(self):
         """Return the source :class:`~fairseq.data.Dictionary`."""
         return self.src_dict
 
