@@ -193,8 +193,12 @@ class ComdaXXXTranslationTask(FairseqTask):
                     else:
                         raise FileNotFoundError('Dataset not found: {} ({})'.format(split, data_path))
 
-                src_datasets.append(indexed_dataset(prefix + src, self.src_dict))
-                tgt_datasets.append(indexed_dataset(prefix + tgt, self.tgt_dict))
+                if self.args.debug:
+                    src_datasets.append(indexed_dataset(prefix + src + '.debug', self.src_dict))
+                    tgt_datasets.append(indexed_dataset(prefix + tgt + '.debug', self.tgt_dict))
+                else:
+                    src_datasets.append(indexed_dataset(prefix + src, self.src_dict))
+                    tgt_datasets.append(indexed_dataset(prefix + tgt, self.tgt_dict))
 
                 print('| {} {} {} examples'.format(data_path, split_k, len(src_datasets[-1])))
 
