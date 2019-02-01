@@ -80,6 +80,9 @@ class ComdaXXXTranslationTask(FairseqTask):
         parser.add_argument("--repeat-batch", default=1, type=int,
                             help='scale factor of gradient update, to emulate'\
                             'repeated batches')
+        parser.add_argument("--no-comgrad", action='store_true',
+                            help='use offline augmented data instead of'\
+                            'compositional batching curriculum')
         # fmt: on
 
     @staticmethod
