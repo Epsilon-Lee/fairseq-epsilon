@@ -40,7 +40,8 @@ class CrossEntropyCriterionWithEncInv(FairseqCriterion):
         2) the sample size, which is used as the denominator for the gradient
         3) logging outputs to display while training
         """
-        if valid:
+        # if not using compositional gradient
+        if valid or task.no_comgrad:
             # do simple forward computation
             net_output = model(**sample['net_input'])
             lprobs = model.get_normalized_probs(net_output, log_probs=True)
