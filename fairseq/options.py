@@ -153,7 +153,7 @@ def add_dataset_args(parser, train=False, gen=False):
                        help='maximum number of tokens in a batch')
     group.add_argument('--max-sentences', '--batch-size', type=int, metavar='N',
                        help='maximum number of sentences in a batch')
-    group.add_argument('--debug', type=bool, action='store_true',
+    group.add_argument('--debug', action='store_true',
                        help='turn on debug mode which load small data')
     if train:
         group.add_argument('--train-subset', default='train', metavar='SPLIT',
