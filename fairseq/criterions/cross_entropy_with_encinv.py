@@ -41,7 +41,7 @@ class CrossEntropyCriterionWithEncInv(FairseqCriterion):
         3) logging outputs to display while training
         """
         # if not using compositional gradient
-        if valid or self.no_comgrad:
+        if valid or self.args.no_comgrad:
             # do simple forward computation
             net_output = model(**sample['net_input'])
             lprobs = model.get_normalized_probs(net_output, log_probs=True)
