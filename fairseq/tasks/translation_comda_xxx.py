@@ -193,7 +193,7 @@ class ComdaXXXTranslationTask(FairseqTask):
                     else:
                         raise FileNotFoundError('Dataset not found: {} ({})'.format(split, data_path))
 
-                if self.args.debug:
+                if split == 'train' and self.args.debug:
                     src_datasets.append(indexed_dataset(prefix + src + '.debug', self.src_dict))
                     tgt_datasets.append(indexed_dataset(prefix + tgt + '.debug', self.tgt_dict))
                 else:
