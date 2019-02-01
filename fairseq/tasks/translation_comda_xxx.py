@@ -223,7 +223,7 @@ class ComdaXXXTranslationTask(FairseqTask):
             phrase_alignment_dataset = indexed_phrase_alignment_dataset(
                     prefix + "phrase-align")
         else:
-            if self.args.no_comgrad:
+            if split == 'train' and self.args.no_comgrad:
                 print("No compositional gradient is True during training")
             else:
                 print("WARNING: valid alignment should be prepared in the data folder.")
