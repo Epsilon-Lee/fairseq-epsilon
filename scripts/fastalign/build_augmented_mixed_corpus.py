@@ -70,8 +70,8 @@ for i in range(args.repeat):
 with open(saveto_src_path, 'w', encoding='utf-8') as f_mixed_src:
     with open(saveto_tgt_path, 'w', encoding='utf-8') as f_mixed_tgt:
         for s, t in zip(src_corpus, tgt_corpus):
-            f_mixed_src.write(' '.join(s) + '\n')
-            f_mixed_tgt.write(' '.join(t) + '\n')
+            f_mixed_src.write(s + '\n')
+            f_mixed_tgt.write(t + '\n')
         for s, t in zip(saveto_src_corpus, saveto_tgt_corpus):
             f_mixed_src.write(' '.join(s) + '\n')
             f_mixed_tgt.write(' '.join(t) + '\n')
