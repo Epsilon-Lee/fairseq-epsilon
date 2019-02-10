@@ -178,6 +178,16 @@ class FairseqTask(object):
             loss, sample_size, logging_output = criterion(model, sample)
         return loss, sample_size, logging_output
 
+    def analyze_step(self, sample, model, criterion, ignore_grad=False):
+        """
+        Do forward pass on origin net input and perturbed ones
+        """
+        model.eval()
+
+        sample_size, logging_output = criterion(model, sample)
+
+        return sample_size, logging_output
+
     def init_logging_output(self, sample):
         return {
             'ntokens': sample['ntokens'] if sample is not None else 0,
