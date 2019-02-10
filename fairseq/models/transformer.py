@@ -296,6 +296,7 @@ class TransformerEncoder(FairseqEncoder):
         self.normalize = args.encoder_normalize_before
         if self.normalize:
             self.layer_norm = LayerNorm(embed_dim)
+        self.analyze_mode = args.task == 'perturb_analysis'
 
     def forward(self, src_tokens, src_lengths):
         """
@@ -327,8 +328,11 @@ class TransformerEncoder(FairseqEncoder):
             encoder_padding_mask = None
 
         # encoder layers
-        for layer in self.layers:
+        blockwise_out = {}
+        for i, layer in enumerate(self.layers):
             x = layer(x, encoder_padding_mask)
+            if self.analyze_mode:
+                blockwise_out['block_{}'.format(i + 1)] = x
 
         if self.normalize:
             x = self.layer_norm(x)
@@ -336,6 +340,7 @@ class TransformerEncoder(FairseqEncoder):
         return {
             'encoder_out': x,  # T x B x C
             'encoder_padding_mask': encoder_padding_mask,  # B x T
+            'blockwise_out': blockwise_out
         }
 
     def reorder_encoder_out(self, encoder_out, new_order):
@@ -445,6 +450,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         self.normalize = args.decoder_normalize_before and final_norm
         if self.normalize:
             self.layer_norm = LayerNorm(embed_dim)
+        self.analyze_mode = args.task == 'perturb_analysis'
 
     def forward(self, prev_output_tokens, encoder_out=None, incremental_state=None):
         """

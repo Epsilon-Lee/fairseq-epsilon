@@ -31,7 +31,8 @@ def build_progress_bar(args, iterator, epoch=None, prefix=None, default='tqdm', 
     elif args.log_format == 'none':
         bar = noop_progress_bar(iterator, epoch, prefix)
     elif args.log_format == 'simple':
-        bar = simple_progress_bar(iterator, epoch, prefix, args.log_interval)
+        bar = simple_progress_bar(iterator, epoch, prefix, args.log_interval,
+                analyze_mode=args.task=='perturb_analysis')
     elif args.log_format == 'tqdm':
         bar = tqdm_progress_bar(iterator, epoch, prefix)
     else:
@@ -160,16 +161,22 @@ class noop_progress_bar(progress_bar):
 class simple_progress_bar(progress_bar):
     """A minimal logger for non-TTY environments."""
 
-    def __init__(self, iterable, epoch=None, prefix=None, log_interval=1000):
+    def __init__(self, iterable, epoch=None, prefix=None, log_interval=1000,
+            analyze_mode=False):
         super().__init__(iterable, epoch, prefix)
         self.log_interval = log_interval
+        self.analyze_mode = analyze_mode
         self.stats = None
 
     def __iter__(self):
         size = len(self.iterable)
         for i, obj in enumerate(self.iterable):
             yield obj
-            if self.stats is not None and i > 0 and \
+            if self.analyze_mode:
+                threshold = -1
+            else:
+                threshold = 1
+            if self.stats is not None and i > threshold and \
                     self.log_interval is not None and i % self.log_interval == 0:
                 postfix = self._str_commas(self.stats)
                 print('{}:  {:5d} / {:d} {}'.format(self.prefix, i, size, postfix),
