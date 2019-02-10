@@ -132,10 +132,10 @@ def analyze(args, analyzer, task, epoch_itr):
             perturbed_src = line_perturbed_src.split() + ['<eos>']
             perturbed_tgt = line_perturbed_tgt.split() + ['<eos>']
 
-            f.write('src          :' + line_src + '\n')
-            f.write('perturbed_src:' + line_perturbed_src + '\n')
-            f.write('tgt          :' + line_tgt + '\n')
-            f.write('perturbed_tgt:' + line_perturbed_tgt + '\n')
+            f.write('src          :' + line_src.encode('utf-8') + '\n')
+            f.write('perturbed_src:' + line_perturbed_src.encode('utf-8') + '\n')
+            f.write('tgt          :' + line_tgt.encode('utf-8') + '\n')
+            f.write('perturbed_tgt:' + line_perturbed_tgt.encode('utf-8') + '\n')
             f.write('\n')
 
             prob_diverge = log_output['prob_diverge'][j]
@@ -151,15 +151,15 @@ def analyze(args, analyzer, task, epoch_itr):
             for lpd in lprob_diverge.tolist():
                 line_lprob_diverge += '%.4f ' % lpd
             line_lprob_diverge = line_lprob_diverge[:-1]
-            f.write('prob_diverge   : {}'.format(line_prob_diverge) + '\n')
-            f.write('lprob_diverge  : {}'.format(line_lprob_diverge) + '\n')
+            f.write('prob_diverge   : {}'.format(line_prob_diverge.encode('utf-8')) + '\n')
+            f.write('lprob_diverge  : {}'.format(line_lprob_diverge.encode('utf-8')) + '\n')
             for k in range(1, args.encoder_layers + 1):
                 line_blockwise_diverge = ''
                 for bd in blockwise_diverge[k - 1].tolist():
                     line_blockwise_diverge += '%.4f ' % bd
                 line_blockwise_diverge = line_blockwise_diverge[:-1]
                 f.write('block_{}_diverge: {}'.format(k,
-                    line_blockwise_diverge) + '\n')
+                    line_blockwise_diverge.encode('utf-8')) + '\n')
             f.write('\n')
             f.write('\n')
         # log mid-epoch stats
