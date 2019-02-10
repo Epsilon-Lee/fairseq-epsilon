@@ -20,6 +20,7 @@ from .monolingual_dataset import MonolingualDataset
 from .round_robin_zip_datasets import RoundRobinZipDatasets
 from .token_block_dataset import TokenBlockDataset
 from .transform_eos_dataset import TransformEosDataset
+from .perturb_analysis_dataset import PerturbAnalysisDataset
 
 from .iterators import (
     CountingIterator,
@@ -50,5 +51,6 @@ __all__ = [
     'IndexedPhraseAlignmentDataset',
     'ComdaTranslationDataset',
     'ComdaXXXTranslationDataset',
+    'PerturbAnalysisDataset',
     'MixedDictionary'
 ]
