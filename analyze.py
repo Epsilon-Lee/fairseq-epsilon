@@ -123,8 +123,8 @@ def analyze(args, analyzer, task, epoch_itr):
             perturbed_src = samples[0]['perturbed_net_input']['src_tokens'][j]
             tgt = samples[0]['target'][j]
             perturbed_tgt = samples[0]['perturbed_target'][j]
-            line_src = task.src_dict.string(src) + ' <eos>'
-            line_tgt = task.tgt_dict.string(tgt) + ' <eos>'
+            line_src = task.src_dict.string(src)
+            line_tgt = task.tgt_dict.string(tgt)
             line_perturbed_src = task.src_dict.string(perturbed_src) + ' <eos>'
             line_perturbed_tgt = task.tgt_dict.string(perturbed_tgt) + ' <eos>'
             src = line_src.split() + ['<eos>']
