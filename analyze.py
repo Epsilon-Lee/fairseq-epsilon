@@ -111,7 +111,7 @@ def analyze(args, analyzer, task, epoch_itr):
     first_valid = args.valid_subset.split(',')[0]
     max_update = args.max_update or math.inf
     fn = os.path.join(args.save_dir, 'analysis.txt')
-    f = open(fn, 'w')
+    f = open(fn, 'w', encoding='utf-8')
     for i, samples in enumerate(progress, start=epoch_itr.iterations_in_epoch):
         # ipdb.set_trace()
         batch_size = samples[0]['nsentences']
@@ -123,19 +123,39 @@ def analyze(args, analyzer, task, epoch_itr):
             perturbed_src = samples[0]['perturbed_net_input']['src_tokens'][j]
             tgt = samples[0]['target'][j]
             perturbed_tgt = samples[0]['perturbed_target'][j]
-            line_src = task.src_dict.string(src)
-            line_tgt = task.tgt_dict.string(tgt)
-            line_perturbed_src = task.src_dict.string(perturbed_src)
-            line_perturbed_tgt = task.tgt_dict.string(perturbed_tgt)
+            line_src = task.src_dict.string(src) + ' <eos>'
+            line_tgt = task.tgt_dict.string(tgt) + ' <eos>'
+            line_perturbed_src = task.src_dict.string(perturbed_src) + ' <eos>'
+            line_perturbed_tgt = task.tgt_dict.string(perturbed_tgt) + ' <eos>'
             src = line_src.split() + ['<eos>']
             tgt = line_tgt.split() + ['<eos>']
             perturbed_src = line_perturbed_src.split() + ['<eos>']
             perturbed_tgt = line_perturbed_tgt.split() + ['<eos>']
 
-            f.write('src          :' + line_src.encode('utf-8') + '\n')
-            f.write('perturbed_src:' + line_perturbed_src.encode('utf-8') + '\n')
-            f.write('tgt          :' + line_tgt.encode('utf-8') + '\n')
-            f.write('perturbed_tgt:' + line_perturbed_tgt.encode('utf-8') + '\n')
+            line_src = ''
+            for t, s in enumerate(src):
+                line_src += '%s(%d) ' % (s, t)
+            line_src = line_src[:-1]
+
+            line_tgt = ''
+            for t, s in enumerate(tgt):
+                line_tgt += '%s(%d) ' % (s, t)
+            line_tgt = line_tgt[:-1]
+
+            line_perturbed_src = ''
+            for t, s in enumerate(perturbed_src):
+                line_perturbed_src += '%s(%d) ' % (s, t)
+            line_perturbed_src = line_perturbed_src[:-1]
+
+            line_perturbed_tgt = ''
+            for t, s in enumerate(perturbed_tgt):
+                line_perturbed_tgt += '%s(%d) ' % (s, t)
+            line_perturbed_tgt = line_perturbed_tgt[:-1]
+
+            f.write('src          :' + line_src + '\n')
+            f.write('perturbed_src:' + line_perturbed_src + '\n')
+            f.write('tgt          :' + line_tgt + '\n')
+            f.write('perturbed_tgt:' + line_perturbed_tgt + '\n')
             f.write('\n')
 
             prob_diverge = log_output['prob_diverge'][j]
@@ -144,22 +164,21 @@ def analyze(args, analyzer, task, epoch_itr):
                     for k in range(1, args.encoder_layers + 1))
             line_prob_diverge = ''
             for t, pd in enumerate(prob_diverge.tolist()):
-                line_prob_diverge += '%.4f(%s) ' % (pd, tgt[t] + ' ' +
-                        perturbed_tgt[t])
+                line_prob_diverge += '%.4f' % pd + '(%d) ' % t
             line_prob_diverge = line_prob_diverge[:-1]
             line_lprob_diverge = ''
-            for lpd in lprob_diverge.tolist():
-                line_lprob_diverge += '%.4f ' % lpd
+            for t, lpd in enumerate(lprob_diverge.tolist()):
+                line_lprob_diverge += '%.4f' % lpd + '(%d) ' % t
             line_lprob_diverge = line_lprob_diverge[:-1]
-            f.write('prob_diverge   : {}'.format(line_prob_diverge.encode('utf-8')) + '\n')
-            f.write('lprob_diverge  : {}'.format(line_lprob_diverge.encode('utf-8')) + '\n')
+            f.write('prob_diverge   : {}'.format(line_prob_diverge + '\n'))
+            f.write('lprob_diverge  : {}'.format(line_lprob_diverge + '\n'))
             for k in range(1, args.encoder_layers + 1):
                 line_blockwise_diverge = ''
-                for bd in blockwise_diverge[k - 1].tolist():
-                    line_blockwise_diverge += '%.4f ' % bd
+                for t, bd in enumerate(blockwise_diverge[k - 1].tolist()):
+                    line_blockwise_diverge += '%.4f' % bd + '(%d) ' % t
                 line_blockwise_diverge = line_blockwise_diverge[:-1]
                 f.write('block_{}_diverge: {}'.format(k,
-                    line_blockwise_diverge.encode('utf-8')) + '\n')
+                    line_blockwise_diverge + '\n'))
             f.write('\n')
             f.write('\n')
         # log mid-epoch stats
