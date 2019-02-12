@@ -8,6 +8,7 @@ import random
 import torch
 
 from ..tasks.translation_comda_xxx import ComdaXXXTranslationTask
+from ..data import data_utils, FairseqDataset
 
 
 class Prototyping(object):
@@ -22,9 +23,12 @@ class Prototyping(object):
             self.proto_tgt_dict = task.proto_tgt_dict
             self.mixed_src_dict = task.mixed_src_dict
             self.mixed_tgt_dict = task.mixed_tgt_dict
-            self.prototyping_strategy = 'length-invariant'
+            self.prototyping_strategy = 'multiple-proto-tokens'
         else:
-            self.prototyping_strategy = 'length-variant'
+            if task.args.length_invariant == 'True':
+                self.prototyping_strategy = 'xxx-length-invariant'
+            else:
+                self.prototyping_strategy = 'xxx-length-variant'
 
         if freq is not None:
             self.freq_threshold = freq
@@ -34,8 +38,13 @@ class Prototyping(object):
     def augment(self, sample, dummy_batch=False):
         src_tokens = sample['net_input']['src_tokens']  # [N, L]
         tgt_tokens = sample['target']
-        if self.prototyping_strategy == 'length-variant':
-            new_sample = self._augment_length_variant(
+        if self.prototyping_strategy == 'xxx-length-invariant':
+            new_sample = self._augment_xxx_length_invariant(
+                    sample,
+                    dummy_batch=dummy_batch)
+            return new_sample
+        elif self.prototyping_strategy == 'xxx-length-variant':
+            new_sample = self._augment_xxx_length_variant(
                     sample,
                     dummy_batch=dummy_batch)
             return new_sample
@@ -157,7 +166,7 @@ class Prototyping(object):
 
         return new_src, new_tgt
 
-    def _augment_length_variant(self, sample, dummy_batch=False):
+    def _augment_xxx_length_invariant(self, sample, dummy_batch=False):
 
         def copy_tensor(src, dst):
             assert dst.numel() == src.numel()
@@ -229,5 +238,123 @@ class Prototyping(object):
 
         return sample
 
+    def _augment_xxx_length_variant(self, sample, dummy_batch=False):
+        """
+        Need self.left_pad_source == True and self.left_pad_target == False
+        """
 
+        # assert
+        assert self.left_pad_source == True, 'self.left_pad_source should be True'
+        assert self.left_pad_target == False, 'self.left_pad_target should be False'
 
+        def merge(key, left_pad, move_eos_to_beginning=False):
+            return data_utils.collate_tokens(
+                [s[key] for s in samples],
+                pad_idx, eos_idx, left_pad, move_eos_to_beginning,
+            )
+
+        def copy_tensor(src, dst):
+            assert dst.numel() == src.numel()
+            if True and not dummy_batch:
+                # if True and not dummy_batch:
+                eos_idx = self.tgt_dict.eos()
+                # assert src[-1] == eos_idx
+                length = dst.shape[0]
+                pos = length
+                while src[pos - 1] != eos_idx:
+                    pos -= 1
+                    if pos == 0:
+                        print('AssertionError: cannot find pos equal eos_idx')
+                        ipdb.set_trace()
+                # ipdb.set_trace()
+                dst[0] = eos_idx
+                dst[1:pos] = src[0:pos - 1]
+            else:
+                dst.copy_(src)
+
+        ipdb.set_trace()
+        net_input = sample['net_input']
+        src_tokens = net_input['src_tokens']
+        src_lengths = net_input['src_lengths']
+        N, src_max_len = src_tokens.shape[0], src_tokens.shape[1]
+        tgt_tokens = sample['target']
+        tgt_max_len = tgt_tokens.shape[1]
+        alignment = sample['alignment']
+
+        # new source
+        proto_src_tokens = src_tokens.clone().tolist()  # [N, L]
+        new_proto_src_tokens = []
+        proto_src_lengths = []
+        # new target
+        proto_tgt_tokens = tgt_tokens.clone().tolist()
+        new_proto_tgt_tokens = []
+        proto_tgt_lengths = []
+
+        proto_prev_output_tokens = []
+        enc_feat_mask_list = []
+
+        for src, src_len, tgt, align in zip(
+                proto_src_tokens,
+                src_lengths,
+                proto_tgt_tokens,
+                alignment
+            ):
+
+            new_src = []
+            new_tgt = []
+
+            num_aligned_phrases = len(align)
+            # randomly picked phrase pair: 'm-n:p-q'
+            randn_ppair = align[random.randint(0, num_aligned_phrases - 1)]
+            m_n, p_q = randn_ppair.split(':')
+            m, n = m_n.split('-')
+            p, q = p_q.split('-')
+            m, n, p, q = int(m), int(n), int(p), int(q)
+
+            src_pad_len = src_max_len - src_len
+            new_src.extend(src[src_pad_len : src_pad_len + m])
+            new_src.append(self.src_dict.xxx())
+            new_src.extend(src[src_pad_len + n + 1 : ])
+            new_proto_src_tokens.append(new_src)
+            # src[m : n + 1] = self.src_dict.xxx()
+
+            tgt_len = tgt.index(self.tgt_dict.eos()) + 1
+            new_tgt.extend(tgt[0 : p])
+            new_tgt.append(self.tgt_dict.xxx())
+            new_tgt.extend(tgt[q + 1 : tgt_len])
+            new_proto_tgt_tokens.append(new_tgt)
+
+            proto_src_lengths.append(len(new_src))
+            proto_tgt_lengths.append(len(new_tgt))
+
+        ipdb.set_trace()
+        # build proto src/tgt tensor with same max src/tgt length
+        proto_src_tokens = torch.LongTensor(
+                N, src_max_len).fill_(self.src_dict.pad())
+        proto_tgt_tokens = torch.LongTensor(
+                N, tgt_max_len).fill_(self.tgt_dict.pad())
+        for proto_src, src, src_len, proto_tgt, tgt, tgt_len in zip(
+                proto_src_tokens,
+                new_proto_src_tokens,
+                proto_src_lengths,
+                proto_tgt_tokens,
+                new_proto_tgt_tokens,
+                proto_tgt_lengths
+            ):
+            src_pad_len = src_max_len - src_len
+            proto_src[src_pad_len : ] = torch.LongTensor(src)
+            proto_tgt[0 : tgt_len] = torch.LongTensor(tgt)
+
+        proto_src_lengths = torch.LongTensor(proto_src_lengths)
+
+        ipdb.set_trace()
+        enc_feat_mask = torch.Tensor(enc_feat_mask_list)
+        sample['enc_feat_mask'] = enc_feat_mask
+        sample['proto_net_input'] = {}
+        sample['proto_net_input']['src_tokens'] = proto_src_tokens
+        sample['proto_net_input']['src_lengths'] = proto_src_lengths
+        sample['proto_net_input']['prev_output_tokens'] = proto_prev_output_tokens
+
+        sample['proto_target'] = proto_tgt_tokens
+
+        return sample
