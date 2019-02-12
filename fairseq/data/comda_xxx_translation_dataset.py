@@ -156,7 +156,7 @@ class ComdaXXXTranslationDataset(FairseqDataset):
         # existing datasets for opposite directions i.e., when we want to
         # use tgt_dataset as src_dataset and vice versa
         if self.append_eos_to_target:
-            eos = self.mixed_tgt_dict.eos() if self.tgt_dict else self.src_dict.eos()
+            eos = self.tgt_dict.eos() if self.tgt_dict else self.src_dict.eos()
             if self.tgt and self.tgt[index][-1] != eos:
                 tgt_item = torch.cat([self.tgt[index], torch.LongTensor([eos])])
 
