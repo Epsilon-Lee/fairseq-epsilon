@@ -14,6 +14,7 @@ from ..data import data_utils, FairseqDataset
 class Prototyping(object):
 
     def __init__(self, task, freq=None):
+        self.args = task.args
         self.src_dict = task.src_dict
         self.tgt_dict = task.tgt_dict
         self.left_pad_source = task.args.left_pad_source
@@ -36,8 +37,7 @@ class Prototyping(object):
             self.freq_threshold = 0
 
     def augment(self, sample, dummy_batch=False):
-        src_tokens = sample['net_input']['src_tokens']  # [N, L]
-        tgt_tokens = sample['target']
+
         if self.prototyping_strategy == 'xxx-length-invariant':
             new_sample = self._augment_xxx_length_invariant(
                     sample,
@@ -48,6 +48,9 @@ class Prototyping(object):
                     sample,
                     dummy_batch=dummy_batch)
             return new_sample
+
+        src_tokens = sample['net_input']['src_tokens']  # [N, L]
+        tgt_tokens = sample['target']
         proto_src_tokens = sample['proto_source']
         proto_tgt_tokens = sample['proto_target']
         alignment = sample['alignment']  # List of N alignment_map dicts
@@ -191,49 +194,63 @@ class Prototyping(object):
         net_input = sample['net_input']
         src_tokens = net_input['src_tokens']
         src_lengths = net_input['src_lengths']
+        prev_output_tokens = net_input['prev_output_tokens']
         tgt_tokens = sample['target']
         # tgt_lengths = sample['tgt_lengths']
         alignment = sample['alignment']
         proto_src_tokens = src_tokens.clone()
         proto_src_lengths = src_lengths.clone()
+        proto_prev_output_tokens = prev_output_tokens.clone()
         proto_tgt_tokens = tgt_tokens.clone()
-        proto_prev_output_tokens = tgt_tokens.clone()
         enc_feat_mask_list = []
+        dec_loss_mask_list = []
+        N, tgt_L = tgt_tokens.shape
         for src, src_len, tgt, prev_tgt, align in zip(
                 proto_src_tokens, proto_src_lengths,
                 proto_tgt_tokens,
                 proto_prev_output_tokens, alignment):
 
             num_aligned_phrases = len(align)
-            # randomly picked phrase pair: 'm-n:p-q'
-            randn_ppair = align[random.randint(0, num_aligned_phrases - 1)]
-            m_n, p_q = randn_ppair.split(':')
-            m, n = m_n.split('-')
-            p, q = p_q.split('-')
-            m, n, p, q = int(m), int(n), int(p), int(q)
-            if self.left_pad_source:
-                src_pad_len = src_tokens.shape[1] - src_len
+            # if len(align) == 0, reserve the original sentence pair
+            if num_aligned_phrases == 0:
+                enc_feat_mask = 1 - src.eq(self.src_dict.pad())
+                dec_loss_mask = torch.zeros([tgt_L])
             else:
-                src_pad_len = 0
-            if self.left_pad_target:
-                raise ValueError('left_pad_target should be False!')
-                # tgt_pad_len = tgt_tokens.shape[1] - tgt_len
-            else:
-                tgt_pad_len = 0
-            # src[m : n + 1] = self.src_dict.xxx()
-            src[src_pad_len + m : src_pad_len + n + 1] = self.src_dict.xxx()
-            tgt[tgt_pad_len + p : tgt_pad_len + q + 1] = self.tgt_dict.xxx()
-            enc_feat_mask = 1 - src.eq(self.src_dict.xxx()) - src.eq(self.src_dict.pad())
+                # randomly picked phrase pair: 'm-n:p-q'
+                randn_ppair = align[random.randint(0, num_aligned_phrases - 1)]
+                m_n, p_q = randn_ppair.split(':')
+                m, n = m_n.split('-')
+                p, q = p_q.split('-')
+                m, n, p, q = int(m), int(n), int(p), int(q)
+                if self.left_pad_source:
+                    src_pad_len = src_tokens.shape[1] - src_len
+                else:
+                    src_pad_len = 0
+                if self.left_pad_target:
+                    raise ValueError('left_pad_target should be False!')
+                    # tgt_pad_len = tgt_tokens.shape[1] - tgt_len
+                else:
+                    tgt_pad_len = 0
+                # src[m : n + 1] = self.src_dict.xxx()
+                src[src_pad_len + m : src_pad_len + n + 1] = self.src_dict.xxx()
+                tgt[tgt_pad_len + p : tgt_pad_len + q + 1] = self.tgt_dict.xxx()
+                copy_tensor(tgt, prev_tgt)
+                enc_feat_mask = 1 - src.eq(self.src_dict.xxx()) - src.eq(self.src_dict.pad())
+                dec_loss_mask = 1 - tgt.eq(self.tgt_dict.pad())
+
             enc_feat_mask_list.append(enc_feat_mask.tolist())
-            copy_tensor(tgt, prev_tgt)
-        # ipdb.set_trace()
+            dec_loss_mask_list.append(dec_loss_mask.tolist())
+
         enc_feat_mask = torch.Tensor(enc_feat_mask_list)
+        dec_loss_mask = torch.Tensor(dec_loss_mask_list)
         sample['enc_feat_mask'] = enc_feat_mask
+        orign_dec_loss_mask = 1.0 - tgt_tokens.eq(self.tgt_dict.pad())
+        sample['orign_dec_loss_mask'] = orign_dec_loss_mask.float()
+        sample['proto_dec_loss_mask'] = dec_loss_mask.float()
         sample['proto_net_input'] = {}
         sample['proto_net_input']['src_tokens'] = proto_src_tokens
         sample['proto_net_input']['src_lengths'] = proto_src_lengths
         sample['proto_net_input']['prev_output_tokens'] = proto_prev_output_tokens
-
         sample['proto_target'] = proto_tgt_tokens
 
         return sample
@@ -272,7 +289,6 @@ class Prototyping(object):
             else:
                 dst.copy_(src)
 
-        ipdb.set_trace()
         net_input = sample['net_input']
         src_tokens = net_input['src_tokens']
         src_lengths = net_input['src_lengths']
@@ -327,34 +343,50 @@ class Prototyping(object):
             proto_src_lengths.append(len(new_src))
             proto_tgt_lengths.append(len(new_tgt))
 
-        ipdb.set_trace()
         # build proto src/tgt tensor with same max src/tgt length
         proto_src_tokens = torch.LongTensor(
                 N, src_max_len).fill_(self.src_dict.pad())
         proto_tgt_tokens = torch.LongTensor(
                 N, tgt_max_len).fill_(self.tgt_dict.pad())
-        for proto_src, src, src_len, proto_tgt, tgt, tgt_len in zip(
+        proto_prev_output_tokens = torch.LongTensor(N,
+            tgt_max_len).fill_(self.tgt_dict.pad())
+        for proto_src, src, src_len, proto_tgt, tgt, tgt_len, proto_prev_tgt in zip(
                 proto_src_tokens,
                 new_proto_src_tokens,
                 proto_src_lengths,
                 proto_tgt_tokens,
                 new_proto_tgt_tokens,
-                proto_tgt_lengths
+                proto_tgt_lengths,
+                proto_prev_output_tokens
             ):
             src_pad_len = src_max_len - src_len
             proto_src[src_pad_len : ] = torch.LongTensor(src)
             proto_tgt[0 : tgt_len] = torch.LongTensor(tgt)
 
+            # encoder feature mask
+            enc_feat_mask = 1.0 - torch.eq(proto_src, self.src_dict.pad()) - torch.eq(proto_src, self.src_dict.xxx())
+            enc_feat_mask_list.append(enc_feat_mask.tolist())
+
+            # proto_prev_output_tokens
+            # import ipdb; ipdb.set_trace()
+            copy_tensor(proto_tgt, proto_prev_tgt)
+
         proto_src_lengths = torch.LongTensor(proto_src_lengths)
 
-        ipdb.set_trace()
         enc_feat_mask = torch.Tensor(enc_feat_mask_list)
         sample['enc_feat_mask'] = enc_feat_mask
         sample['proto_net_input'] = {}
         sample['proto_net_input']['src_tokens'] = proto_src_tokens
         sample['proto_net_input']['src_lengths'] = proto_src_lengths
         sample['proto_net_input']['prev_output_tokens'] = proto_prev_output_tokens
-
         sample['proto_target'] = proto_tgt_tokens
+        orign_target_mask = 1.0 - torch.eq(sample['target'], self.tgt_dict.pad()).float()
+        proto_target_mask = 1.0 - \
+                torch.eq(proto_tgt_tokens, self.tgt_dict.pad()).float() - \
+                torch.eq(proto_tgt_tokens, self.tgt_dict.xxx()).float() * (1.0 - \
+                        self.args.xxx_loss_coefficient)
+        # import ipdb; ipdb.set_trace()
+        sample['orign_dec_loss_mask'] = orign_target_mask
+        sample['proto_dec_loss_mask'] = proto_target_mask
 
         return sample
