@@ -18,6 +18,7 @@ class SwitchoutSchedule(FairseqLRScheduler):
 
         self.lr = args.lr[0]  # set to the first 1000 updates
         self.decay_cnt = 0
+        self.remain = self.args.decay_until % self.args.decay_interval
 
     @staticmethod
     def add_args(parser):
@@ -39,6 +40,7 @@ class SwitchoutSchedule(FairseqLRScheduler):
     def step_update(self, num_updates):
         """Update the learning rate after each update."""
         if num_updates >= self.args.decay_until and num_updates % self.args.decay_interval == 0:
-            self.decay_cnt += 1
+            self.decay_cnt = (num_updates + self.remain - \
+                    self.args.decay_until) // self.args.decay_interval
             self.optimizer.set_lr(self.lr * self.args.lr_shrink ** self.decay_cnt)
         return self.optimizer.get_lr()
