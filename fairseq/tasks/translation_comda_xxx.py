@@ -83,6 +83,11 @@ class ComdaXXXTranslationTask(FairseqTask):
         parser.add_argument("--no-comgrad", action='store_true',
                             help='use offline augmented data instead of'\
                             'compositional batching curriculum')
+        parser.add_argument("--phrase-length", type=int, default=0,
+                            help='if > 0, use fixed length phrase pair align')
+        parser.add_argument('--xxx-loss-coefficient', default=1.0, type=float,
+                            help='the xxx token has the loss interpolated'\
+                            'with other tokens, thus reweight its gradient')
         # fmt: on
 
     @staticmethod
@@ -220,8 +225,13 @@ class ComdaXXXTranslationTask(FairseqTask):
 
         if split == 'train' and not self.args.no_comgrad:
             # ipdb.set_trace()
-            phrase_alignment_dataset = indexed_phrase_alignment_dataset(
-                    prefix + "phrase-align")
+            if self.args.phrase_length > 0:
+                align_path = prefix + "phrase-align.length%d" % self.args.phrase_length
+            else:
+                align_path = prefix + "phrase-align"
+            if self.args.debug and self.args.phrase_length == 0:
+                align_path += '.debug'
+            phrase_alignment_dataset = indexed_phrase_alignment_dataset(align_path)
         else:
             if split == 'train' and self.args.no_comgrad:
                 print("No compositional gradient is True during training")
