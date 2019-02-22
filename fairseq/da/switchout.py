@@ -26,6 +26,13 @@ class Switchout(object):
         self.src_dict = task.src_dict
         self.tgt_dict = task.tgt_dict
 
+        # left-pad-source, left-pad-target
+        self.left_pad_source = task.args.left_pad_source
+        self.left_pad_target = task.args.left_pad_target
+
+        assert self.left_pad_source == False, '--left-pad-source should be False'
+
+
     def augment(self, sample, dummy_batch=False):
         """
         Refer to the appendix of the original paper for reference
@@ -55,8 +62,6 @@ class Switchout(object):
             sents).contiguous().masked_fill_(mask, -float("inf"))
         probs = torch.nn.functional.softmax(logits.mul_(self.tau[lang]), dim=1)
         num_words = torch.distributions.Categorical(probs).sample()  # how many words to switch out
-        # if num_words[0] > 0:
-        #     ipdb.set_trace()
 
         # sample the corrupted positions
         corrupt_pos = num_words.data.float().div_(lengths).unsqueeze(
