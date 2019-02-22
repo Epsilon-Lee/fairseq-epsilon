@@ -80,7 +80,7 @@ class Trainer(object):
             self.meters['loss_scale'] = AverageMeter()  # dynamic loss scale
         self.meters['wall'] = TimeMeter()      # wall time in seconds
         self.meters['train_wall'] = StopwatchMeter()  # train wall time in seconds
-        if args.criterion == 'cross_entropy_with_encinv':
+        if args.criterion == 'cross_entropy_with_encinv' and not args.no_comgrad:
             self.meters['enc_inv_loss'] =  AverageMeter()
 
     @property
