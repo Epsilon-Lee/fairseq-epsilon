@@ -31,6 +31,7 @@ class CrossEntropyCriterionWithEncInv(FairseqCriterion):
     def __init__(self, args, task):
         super().__init__(args, task)
         self.coef = args.coefficient
+        self.xxx_coef = args.xxx_loss_coefficient
 
     def forward(self, model, sample, valid=False, reduce=True):
         """Compute the loss for the given sample.
@@ -58,7 +59,6 @@ class CrossEntropyCriterionWithEncInv(FairseqCriterion):
             }
             return loss, sample_size, logging_output
 
-        # ipdb.set_trace()
         # src_tokens, src_lengths, prev_output_tokens
         orign_net_input = sample['net_input']
         proto_net_input = sample['proto_net_input']
@@ -102,11 +102,26 @@ class CrossEntropyCriterionWithEncInv(FairseqCriterion):
                     [sample['target'], sample['proto_target']],
                     0
                 ).view(-1)
+        # import ipdb; ipdb.set_trace()
         # divide 2: to get averaged one batch total loss
-        loss = F.nll_loss(
-                lprobs, concat_target, size_average=False,
-                ignore_index=self.padding_idx,
-                reduce=reduce) / 2.0
+        # loss = F.nll_loss(
+        #          lprobs, concat_target, size_average=False,
+        #          ignore_index=self.padding_idx,
+        #          reduce=reduce) / 2.0
+        # loss = F.nll_loss(
+        #          lprobs, concat_target, size_average=False,
+        #          ignore_index=self.padding_idx,
+        #          reduce=reduce)
+        loss_ = F.nll_loss(
+                 lprobs, concat_target, size_average=False,
+                 ignore_index=self.padding_idx,
+                 reduce=False)
+        dec_loss_mask = torch.cat(
+                     [sample['orign_dec_loss_mask'], sample['proto_dec_loss_mask']],
+                     dim=0
+                 )  # [2 x N, L]
+        loss_ = loss_ * dec_loss_mask.view(-1)
+        loss = loss_.sum() / 2.0
 
         # compute encoder representation invariance (enc_inv) loss
         delta = orign_encoder_out - proto_encoder_out
@@ -134,7 +149,8 @@ class CrossEntropyCriterionWithEncInv(FairseqCriterion):
             'ntokens': sample['ntokens'],
             'nsentences': sample['target'].size(0),
             'sample_size': sample_size,
-            'enc_inv_loss': scaled_masked_delta_l2.data,
+            'enc_inv_loss': utils.item(scaled_masked_delta_l2.data) if reduce \
+                    else scaled_masked_delta_l2.data,
         }
         if self.args.repeat_batch > 1:
             final_loss *= self.args.repeat_batch
