@@ -23,7 +23,7 @@ saveto = args.save_to
 print('Merging two corpora into one...')
 with open(args.src_corpus, 'r', encoding='utf-8') as f_src:
     with open(args.tgt_corpus, 'r', encoding='utf-8') as f_tgt:
-        with open(saveto, 'w', encoding=utf-8) as f_saveto:
+        with open(saveto, 'w', encoding='utf-8') as f_saveto:
             for (src_line, tgt_line) in zip(f_src, f_tgt):
                 src_line = src_line.strip()
                 tgt_line = tgt_line.strip()
