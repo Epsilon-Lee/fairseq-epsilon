@@ -37,23 +37,8 @@ class LabelSmoothedCrossEntropyCriterion(FairseqCriterion):
         2) the sample size, which is used as the denominator for the gradient
         3) logging outputs to display while training
         """
-        if valid:
-            # ipdb.set_trace()
-            net_output = model(**sample['net_input'])
-            loss, nll_loss = self.compute_loss(model, net_output, sample, reduce=reduce)
-            sample_size = sample['target'].size(0) if self.args.sentence_avg else sample['ntokens']
-            logging_output = {
-                'loss': utils.item(loss.data) if reduce else loss.data,
-                'nll_loss': utils.item(nll_loss.data) if reduce else nll_loss.data,
-                'ntokens': sample['ntokens'],
-                'nsentences': sample['target'].size(0),
-                'sample_size': sample_size,
-            }
-
-            return loss, sample_size, logging_output
-
         # comda method
-        elif 'proto_net_input' in sample:
+        if 'proto_net_input' in sample:
             # src_tokens, src_lengths, prev_output_tokens
             orign_net_input = sample['net_input']
             proto_net_input = sample['proto_net_input']
@@ -118,8 +103,20 @@ class LabelSmoothedCrossEntropyCriterion(FairseqCriterion):
             }
             return loss, sample_size, logging_output
         else:
-            print('Exit')
-            ipdb.set_trace()
+            # baseline or valid
+            # ipdb.set_trace()
+            net_output = model(**sample['net_input'])
+            loss, nll_loss = self.compute_loss(model, net_output, sample, reduce=reduce)
+            sample_size = sample['target'].size(0) if self.args.sentence_avg else sample['ntokens']
+            logging_output = {
+                'loss': utils.item(loss.data) if reduce else loss.data,
+                'nll_loss': utils.item(nll_loss.data) if reduce else nll_loss.data,
+                'ntokens': sample['ntokens'],
+                'nsentences': sample['target'].size(0),
+                'sample_size': sample_size,
+            }
+
+            return loss, sample_size, logging_output
 
     def compute_loss(self, model, net_output, sample, reduce=True):
         lprobs = model.get_normalized_probs(net_output, log_probs=True)
