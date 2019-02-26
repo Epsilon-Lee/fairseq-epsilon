@@ -289,7 +289,11 @@ class Prototyping(object):
             else:
                 dst.copy_(src)
 
-        net_input = sample['net_input']
+        try:
+            net_input = sample['net_input']
+        except:
+            from fairseq import pdb; pdb.set_trace()
+            print(sample)
         src_tokens = net_input['src_tokens']
         src_lengths = net_input['src_lengths']
         N, src_max_len = src_tokens.shape[0], src_tokens.shape[1]
