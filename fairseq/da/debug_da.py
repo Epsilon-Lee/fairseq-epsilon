@@ -11,7 +11,7 @@ from ..tasks.translation_comda_xxx import ComdaXXXTranslationTask
 from ..data import data_utils, FairseqDataset
 
 
-class Prototyping(object):
+class Debug_DA(object):
 
     def __init__(self, task, freq=None):
         self.args = task.args
