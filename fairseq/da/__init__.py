@@ -7,9 +7,11 @@
 
 from .switchout import Switchout
 from .prototyping import Prototyping
+from .debug_da import Debug_DA
 
 
 __all__ = [
     'Switchout',
     'Prototyping',
+    'Debug_DA'
 ]
