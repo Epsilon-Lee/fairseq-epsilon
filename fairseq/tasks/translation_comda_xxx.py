@@ -88,6 +88,9 @@ class ComdaXXXTranslationTask(FairseqTask):
         parser.add_argument('--xxx-loss-coefficient', default=1.0, type=float,
                             help='the xxx token has the loss interpolated'\
                             'with other tokens, thus reweight its gradient')
+        parser.add_argument('--use-word-align', action='store_true',
+                            help='do not use phrase align, instead only word'\
+                            'alignment')
         # fmt: on
 
     @staticmethod
@@ -224,8 +227,10 @@ class ComdaXXXTranslationTask(FairseqTask):
             tgt_dataset = ConcatDataset(tgt_datasets, sample_ratios)
 
         if split == 'train' and not self.args.no_comgrad:
-            # ipdb.set_trace()
-            if self.args.phrase_length > 0:
+            ipdb.set_trace()
+            if self.args.use_word_align:
+                align_path = prefix + "word-align"
+            elif self.args.phrase_length > 0:
                 align_path = prefix + "phrase-align.length%d" % self.args.phrase_length
             else:
                 align_path = prefix + "phrase-align"
